@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAssignBillPage, postAssignBill } from '../controllers/pagesController.js';
+import { getAssignBillPage, postAssignBill } from '../controllers/billerController.js';
 
 const router = express.Router();
 

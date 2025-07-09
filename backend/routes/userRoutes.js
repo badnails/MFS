@@ -1,12 +1,15 @@
 import express from 'express';
-import { getHomePage, validateAccount, getBalance } from '../controllers/pagesController.js';
-
+import { getHomePage, validateAccount, getBalance, searchAccounts } from '../controllers/userController.js';
+import { authenticateJWT } from '../controllers/authController.js';
+import { getUserBalance } from '../controllers/userController.js';
 const router = express.Router();
 
 // Matches both POST and GET homepage from original
-router.post('/homepage', getHomePage);   // POST /user/homepage
-router.get('/homepage', getHomePage);    // GET  /user/homepage
-router.post('/validate-account', validateAccount);
-router.get('/balance', getBalance);
+router.post('/homepage', authenticateJWT, getHomePage);   // POST /user/homepage
+router.get('/homepage',authenticateJWT, getHomePage);    // GET  /user/homepage
+router.get('/validate-account/:accountid',authenticateJWT, validateAccount);
+router.get('/balance', authenticateJWT, getBalance);
+router.get('/accountsearch', authenticateJWT, searchAccounts);
+router.get('/balance', authenticateJWT, getUserBalance);
 
 export default router;

@@ -1,4 +1,4 @@
-import pool from '../db/index.js';
+import pool from '../db.js';
 
 
 export const generateBillBatch = async (req, res) => {
