@@ -3,12 +3,10 @@ import pool from '../../db.js';
 export async function getAllData(req, res) {
     try {
         const result = await pool.query(`
-            SELECT * FROM accounts
-                
+            SELECT * FROM accounts   
         `);
 
         const data = result.rows;
-
         res.json(
             data
         );

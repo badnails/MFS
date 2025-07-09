@@ -186,11 +186,11 @@ const AccountsManagement = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {formatCurrency(account.currentbalance)}
+                      {formatCurrency(account.availablebalance)}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    {/* <div className="text-xs text-gray-500">
                       Available: {formatCurrency(account.availablebalance)}
-                    </div>
+                    </div> */}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -201,7 +201,7 @@ const AccountsManagement = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(account.createdtimestamp)}
+                    {formatDate(account.registrationdate)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">

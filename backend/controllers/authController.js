@@ -158,33 +158,6 @@ export const signupUser = async (req, res) => {
     }
 };
 
-// export const signupUser = async (req, res) => {
-//     const { accountId, accountname, password, accounttype } = req.body;
-
-//     try {
-//         const existing = await pool.query('SELECT * FROM accounts WHERE accountid = $1', [accountId]);
-//         if (existing.rows.length > 0) {
-//             return res.status(409).json({ error: 'Account ID already exists.' });
-//         }
-
-//         const salt = crypto.randomBytes(16).toString('hex');
-//         const hash = await bcrypt.hash(password + salt, 10);
-//         const totpkey = otplib.authenticator.generateSecret();
-
-//         await pool.query(`
-//             INSERT INTO accounts (accountid, accounttype, accountname, salt, pinhash, accountstatus, availablebalance, currentbalance, totpcode, accounttierid, verificationstatus)
-//             VALUES ($1, $2, $3, $4, $5, 'ACTIVE', 0.00, 0.00, $6, 1, 'UNVERIFIED')
-//         `, [accountId, accounttype, accountname, salt, hash, totpkey]);
-
-//         const otpURI = otplib.authenticator.keyuri(`MFS: ${accountname}`, 'MFS', totpkey);
-//         const qrURI = await qrcode.toDataURL(otpURI);
-
-//         res.json({ accountId, qrURI, totpkey });
-//     } catch (err) {
-//         console.error(err);
-//         res.status(500).json({ error: 'Signup failed. Try again.' });
-//     }
-// };
 export const authenticateJWT = (req, res, next) => {
     const authHeader = req.headers.authorization;
 

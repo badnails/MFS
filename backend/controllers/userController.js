@@ -56,18 +56,17 @@ export const validateAccount = async (req, res) => {
 
     try {
         const result = await pool.query(
-            `SELECT * FROM accounts WHERE accountid = $1`,
+            `SELECT * FROM accounts WHERE accountid = $1 OR username = $1`,
             [accountId]
         );
 
         if (result.rows.length > 0) {
-            console.log(result.rows[0].accountid + " " + result.rows[0].accountname);
+            console.log(result.rows[0].accountid + " " + result.rows[0].username);
             return res.json({
                 exists: true,
                 accountId: result.rows[0].accountid,
-                accountname: result.rows[0].accountname,
+                accountname: result.rows[0].username,
                 accounttype: result.rows[0].accounttype,
-                currentbalance: result.rows[0].currentbalance,
                 availablebalance: result.rows[0].availablebalance
             });
         } else {
@@ -120,21 +119,21 @@ export async function searchAccounts(req, res) {
 
     // Search by both account ID and account name
     const result = await pool.query(`
-      SELECT accountid, accountname, accounttype, accountstatus 
+      SELECT accountid, username, accounttype, accountstatus 
       FROM accounts 
       WHERE accounttype = $1 
         AND accountstatus = 'ACTIVE'
         AND (
-          LOWER(accountname) LIKE LOWER($2) 
+          LOWER(username) LIKE LOWER($2) 
           OR accountid::text LIKE $3
         )
-      ORDER BY accountname
+      ORDER BY username
       LIMIT 20
     `, [type, `%${query}%`, `%${query}%`]);
 
     const accounts = result.rows.map(account => ({
       accountid: account.accountid,
-      accountname: account.accountname,
+      accountname: account.username,
       accounttype: account.accounttype
     }));
 

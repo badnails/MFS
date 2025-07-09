@@ -125,17 +125,17 @@ const BalanceUpdate = () => {
             <div>
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Current Balance</label>
+                  <label className="text-sm font-medium text-gray-600">Available Balance</label>
                   <p className="text-2xl font-bold text-gray-900">
-                    {formatCurrency(selectedAccount.currentbalance)}
+                    {formatCurrency(selectedAccount.availablebalance)}
                   </p>
                 </div>
-                <div>
+                {/* <div>
                   <label className="text-sm font-medium text-gray-600">Available Balance</label>
                   <p className="text-lg text-gray-900">
                     {formatCurrency(selectedAccount.availablebalance)}
                   </p>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>
