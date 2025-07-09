@@ -7,7 +7,7 @@ import axios from 'axios';
 const PaymentCompletion = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const transactionId = searchParams.get('transactionId');
+  const transactionId = searchParams.get('transactionid');
   
   const [paymentStatus, setPaymentStatus] = useState('checking'); // checking, success, failed
   const [transactionDetails, setTransactionDetails] = useState(null);
@@ -33,7 +33,7 @@ const PaymentCompletion = () => {
       if (status === 'COMPLETED' || status === 'SUCCESS') {
         setPaymentStatus('success');
         return true; // Stop polling
-      } else if (status === 'FAILED' || status === 'CANCELLED') {
+      } else if (status === 'PENDING' || status === 'CANCELLED') {
         setPaymentStatus('failed');
         return true; // Stop polling
       }

@@ -84,7 +84,7 @@ const PaymentComponent = () => {
       const { transactionId } = response.data;
       
       // Redirect to dummy payment URL with transaction ID
-      const paymentUrl = `https://dummy-payment-gateway.com/pay?transactionId=${transactionId}&amount=${paymentAmount}&returnUrl=${encodeURIComponent(window.location.origin + '/payment-completion')}`;
+      const paymentUrl = `https://tpg-six.vercel.app/gateway?transactionid=${transactionId}&redirectURL=${encodeURIComponent(window.location.origin + '/payment-completion')}`;
       
       window.location.href = paymentUrl;
       

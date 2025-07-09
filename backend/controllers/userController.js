@@ -80,7 +80,8 @@ export const validateAccount = async (req, res) => {
 
 
 export const getBalance = async (req, res) => {
-    const accountId = req.user?.accountId;
+    const accountId = req.user?.accountid;
+    console.log(accountId);
     if (!accountId) return res.status(401).json({ error: 'Unauthorized' });
 
     try {
@@ -146,8 +147,9 @@ export async function searchAccounts(req, res) {
 }
 
 export const getUserBalance = async (req, res) => {
-  const accountId = req.user?.accountId;
-  if (!accountId) return res.status(401).json({ error: 'Unauthorized' });
+  const accountId = req.user?.accountid;
+  console.log(accountId);
+  //if (!accountId) return res.status(401).json({ error: 'Unauthorized' });
 
   try {
     const result = await pool.query(

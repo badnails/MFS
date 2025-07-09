@@ -119,7 +119,7 @@ export const verifyAccount = async (req, res) => {
 // NEW: Initiate payment endpoint
 export const initiatePayment = async (req, res) => {
   const { recipientId, amount, paymentType, description } = req.body;
-  const sourceAccountId = req.user?.accountId;
+  const sourceAccountId = req.user?.accountid;
 
   if (!sourceAccountId) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -148,7 +148,7 @@ export const initiatePayment = async (req, res) => {
 
     // Verify recipient account exists
     const recipientResult = await pool.query(
-      'SELECT accountid, accountname FROM accounts WHERE accountid = $1',
+      'SELECT accountid, username FROM accounts WHERE accountid = $1',
       [recipientId]
     );
 
@@ -157,28 +157,16 @@ export const initiatePayment = async (req, res) => {
     }
 
     // Create transaction record in PENDING status
-    const transactionResult = await pool.query(`
-      INSERT INTO transaction (
-        transactiontypeid, transactionstatus,
-        sourceaccountid, destinationaccountid,
-        subamount, feesamount, totalamount,
-        initiationtimestamp, reference
-      ) VALUES (
-        $1, 'PENDING',
-        $2, $3,
-        $4, 0, $4,
-        NOW(), $5
-      ) RETURNING transactionid`,
+    const transactionResult = await pool.query(
+      "SELECT create_trx_id($1, $2, $3)",
       [
-        getTransactionTypeId(paymentType),
-        sourceAccountId,
         recipientId,
-        paymentAmount,
-        `${paymentType.toUpperCase()}-${Date.now()}`
+        1,
+        paymentAmount
       ]
     );
 
-    const transactionId = transactionResult.rows[0].transactionid;
+    const transactionId = transactionResult.rows[0].create_trx_id;
 
     res.json({
       success: true,

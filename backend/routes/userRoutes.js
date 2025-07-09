@@ -10,6 +10,6 @@ router.get('/homepage',authenticateJWT, getHomePage);    // GET  /user/homepage
 router.get('/validate-account/:accountid',authenticateJWT, validateAccount);
 router.get('/balance', authenticateJWT, getBalance);
 router.get('/accountsearch', authenticateJWT, searchAccounts);
-router.get('/balance', authenticateJWT, getUserBalance);
+//router.get('/balance', authenticateJWT, getUserBalance);
 
 export default router;
