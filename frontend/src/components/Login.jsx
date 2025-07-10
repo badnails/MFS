@@ -1,31 +1,39 @@
 // src/components/Login.jsx
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { User, Lock, Eye, EyeOff, Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import {
+  User,
+  Lock,
+  Eye,
+  EyeOff,
+  Loader2,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import axios from "axios";
 
 const Login = () => {
   const [formData, setFormData] = useState({
-    username: '',
-    password: ''
+    username: "",
+    password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [usernameValid, setUsernameValid] = useState(null);
   const [usernameCheckLoading, setUsernameCheckLoading] = useState(false);
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
     //setError('');
-    if (e.target.name === 'username') {
+    if (e.target.name === "username") {
       setUsernameValid(null);
     }
   };
@@ -46,20 +54,22 @@ const Login = () => {
     setUsernameCheckLoading(true);
     try {
       const res = await axios.get(`/auth/check-username/${username}`);
-      if(res.data.valid)  //Username available
-      {
+      if (res.data.valid) {
+        //Username available
         setUsernameValid(false);
         setError("Username not registered");
-      }
-      else
-      {
-        setError('');
-        setUsernameValid(true);
+      } else {
+        if (res.data.accountstatus === "ACTIVE") {
+          setError("");
+          setUsernameValid(true);
+        } else if (res.data.accountstatus === "BLOCKED") {
+          await axios.get(`/auth/check-user-block/${username}`);
+        }
       }
     } catch (err) {
-        console.log(err);
-        setUsernameValid(false);
-        setError('Failed to check username availability.');
+      console.log(err);
+      setUsernameValid(false);
+      setError(err.response?.data?.message || "Failed to check username availability.");
     } finally {
       setUsernameCheckLoading(false);
     }
@@ -68,10 +78,10 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     if (usernameValid === null || usernameValid === false) {
-      setError('Username not found or not checked.');
+      setError("Username not found or not checked.");
       setLoading(false);
       return;
     }
@@ -93,7 +103,7 @@ const Login = () => {
               }
             );
           } else {
-            console.error('Geolocation is not supported by this browser.');
+            console.error("Geolocation is not supported by this browser.");
             resolve(null);
           }
         });
@@ -101,17 +111,17 @@ const Login = () => {
 
       const location = await getGeolocation();
 
-      const response = await axios.post('/auth/loginUserInit', formData, {
+      const response = await axios.post("/auth/loginUserInit", formData, {
         headers: {
-          'X-User-Location': location ? JSON.stringify(location) : undefined,
+          "X-User-Location": location ? JSON.stringify(location) : undefined,
         },
       });
-      
-      const {token , user} = response.data;
+
+      const { token, user } = response.data;
       login(token, user);
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.');
+      setError(err.response?.data?.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -124,15 +134,16 @@ const Login = () => {
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
             Welcome Back
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Sign in to your account
-          </p>
+          <p className="mt-2 text-sm text-gray-600">Sign in to your account</p>
         </div>
-        
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Username
               </label>
               <div className="relative">
@@ -154,21 +165,26 @@ const Login = () => {
                     <Loader2 className="animate-spin h-5 w-5 text-gray-400" />
                   </div>
                 )}
-                {!usernameCheckLoading && usernameValid === true && ( // Username exists
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                  </div>
-                )}
-                {!usernameCheckLoading && usernameValid === false && ( // Username does not exist
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <XCircle className="h-5 w-5 text-red-500" />
-                  </div>
-                )}
+                {!usernameCheckLoading &&
+                  usernameValid === true && ( // Username exists
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    </div>
+                  )}
+                {!usernameCheckLoading &&
+                  usernameValid === false && ( // Username does not exist
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                      <XCircle className="h-5 w-5 text-red-500" />
+                    </div>
+                  )}
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Password
               </label>
               <div className="relative">
@@ -178,7 +194,7 @@ const Login = () => {
                 <input
                   id="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   required
                   className="input-field pl-10 pr-10"
                   placeholder="Enter your password"
@@ -208,8 +224,22 @@ const Login = () => {
 
           <button
             type="submit"
-            disabled={loading || usernameCheckLoading || usernameValid === false || !formData.username || !formData.password}
-            className={`w-full btn-primary flex items-center justify-center ${loading || usernameCheckLoading || usernameValid === false || !formData.username || !formData.password ? 'bg-gray-400 text-gray-700 cursor-not-allowed' : ''}`}
+            disabled={
+              loading ||
+              usernameCheckLoading ||
+              usernameValid === false ||
+              !formData.username ||
+              !formData.password
+            }
+            className={`w-full btn-primary flex items-center justify-center ${
+              loading ||
+              usernameCheckLoading ||
+              usernameValid === false ||
+              !formData.username ||
+              !formData.password
+                ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                : ""
+            }`}
           >
             {loading ? (
               <>
@@ -217,14 +247,17 @@ const Login = () => {
                 Signing in...
               </>
             ) : (
-              'Sign In'
+              "Sign In"
             )}
           </button>
 
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+              Don't have an account?{" "}
+              <Link
+                to="/signup"
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
                 Sign up here
               </Link>
             </p>
