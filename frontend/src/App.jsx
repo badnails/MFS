@@ -10,6 +10,8 @@ import PaymentComponent from './components/payment/PaymentComponent';
 import PaymentCompletion from './components/payment/PaymentCompletion';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import AgentDashboard from './components/agent/AgentDashboard';
+import { ToastContainer } from 'react-toastify';
+
 
 function App() {
   return (
@@ -42,6 +44,7 @@ function App() {
             <Route path="/" element={<Navigate to="/login" />} />
           </Routes>
         </div>
+      <ToastContainer />
       </Router>
     </AuthProvider>
   );
