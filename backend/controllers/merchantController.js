@@ -2,7 +2,7 @@
 import pool from '../db.js';
 
 export const getMerchantDashboard = async (req, res) => {
-  const merchantId = req.user?.accountId;
+  const merchantId = req.user?.accountid;
   
   if (!merchantId) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -24,10 +24,10 @@ export const getMerchantDashboard = async (req, res) => {
     // Get total revenue from completed transactions
     const revenueResult = await pool.query(`
       SELECT 
-        COALESCE(SUM(CASE WHEN t.transactionstatus = 'COMPLETED' THEN t.totalamount END), 0) as total_revenue,
-        COALESCE(SUM(CASE WHEN t.transactionstatus = 'COMPLETED' AND DATE_TRUNC('month', t.completiontimestamp) = DATE_TRUNC('month', CURRENT_DATE) THEN t.totalamount END), 0) as monthly_revenue
-      FROM transaction t
-      WHERE t.destinationaccountid = $1 AND t.transactiontypeid = 4444
+        COALESCE(SUM(CASE WHEN t.transactionstatus = 'COMPLETED' THEN t.subamount END), 0) as total_revenue,
+        COALESCE(SUM(CASE WHEN t.transactionstatus = 'COMPLETED' AND DATE_TRUNC('month', t.completiontimestamp) = DATE_TRUNC('month', CURRENT_DATE) THEN t.subamount END), 0) as monthly_revenue
+      FROM transactions t
+      WHERE t.destinationaccountid = $1 AND t.transactiontypeid = 1
     `, [merchantId]);
 
     const revenue = revenueResult.rows[0];
@@ -37,11 +37,11 @@ export const getMerchantDashboard = async (req, res) => {
       SELECT 
         t.*,
         tt.transactiontypename,
-        src.accountname as customer_name
-      FROM transaction t
+        src.username as customer_name
+      FROM transactions t
       JOIN transactiontype tt ON t.transactiontypeid = tt.transactiontypeid
       LEFT JOIN accounts src ON t.sourceaccountid = src.accountid
-      WHERE t.destinationaccountid = $1 AND t.transactiontypeid = 4444
+      WHERE t.destinationaccountid = $1 AND t.transactiontypeid = 1
       ORDER BY t.initiationtimestamp DESC
       LIMIT 10
     `, [merchantId]);
@@ -50,7 +50,7 @@ export const getMerchantDashboard = async (req, res) => {
       transactionId: bill.transactionid,
       customerAccount: bill.sourceaccountid,
       customerName: bill.customer_name,
-      amount: parseFloat(bill.totalamount),
+      amount: parseFloat(bill.subamount),
       status: bill.transactionstatus,
       createdAt: bill.initiationtimestamp,
       reference: bill.reference
@@ -69,7 +69,7 @@ export const getMerchantDashboard = async (req, res) => {
 };
 
 export const getTodayStats = async (req, res) => {
-  const merchantId = req.user?.accountId;
+  const merchantId = req.user?.accountid;
   
   if (!merchantId) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -82,10 +82,10 @@ export const getTodayStats = async (req, res) => {
         COUNT(*) as total_bills,
         COUNT(CASE WHEN t.transactionstatus = 'COMPLETED' THEN 1 END) as paid_bills,
         COUNT(CASE WHEN t.transactionstatus = 'PENDING' THEN 1 END) as pending_bills,
-        COALESCE(SUM(CASE WHEN t.transactionstatus = 'COMPLETED' THEN t.totalamount END), 0) as total_revenue
-      FROM transaction t
+        COALESCE(SUM(CASE WHEN t.transactionstatus = 'COMPLETED' THEN t.subamount END), 0) as total_revenue
+      FROM transactions t
       WHERE t.destinationaccountid = $1 
-        AND t.transactiontypeid = 4444
+        AND t.transactiontypeid = 1
         AND DATE(t.initiationtimestamp) = CURRENT_DATE
     `, [merchantId]);
 
@@ -105,7 +105,7 @@ export const getTodayStats = async (req, res) => {
 };
 
 export const createBill = async (req, res) => {
-  const merchantId = req.user?.accountId;
+  const merchantId = req.user?.accountid;
   const { customerAccount, amount, description, dueDate, externalTransactionId } = req.body;
 
   if (!merchantId) {
@@ -125,7 +125,7 @@ export const createBill = async (req, res) => {
 
     // Verify customer account exists
     const customerResult = await pool.query(
-      'SELECT accountid, accountname FROM accounts WHERE accountid = $1',
+      'SELECT accountid, username FROM accounts WHERE accountid = $1',
       [customerAccount]
     );
 
@@ -143,13 +143,13 @@ export const createBill = async (req, res) => {
     };
 
     const transactionResult = await pool.query(`
-      INSERT INTO transaction (
+      INSERT INTO transactions (
         transactiontypeid, transactionstatus,
         sourceaccountid, destinationaccountid,
-        subamount, feesamount, totalamount,
+        subamount, feesamount, subamount,
         initiationtimestamp, reference
       ) VALUES (
-        4444, 'PENDING',
+        1, 'PENDING',
         $1, $2,
         $3, 0, $3,
         NOW(), $4
@@ -171,7 +171,7 @@ export const createBill = async (req, res) => {
 };
 
 export const getPendingBills = async (req, res) => {
-  const merchantId = req.user?.accountId;
+  const merchantId = req.user?.accountid;
 
   if (!merchantId) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -181,11 +181,11 @@ export const getPendingBills = async (req, res) => {
     const billsResult = await pool.query(`
       SELECT 
         t.*,
-        src.accountname as customer_name
-      FROM transaction t
+        src.username as customer_name
+      FROM transactions t
       LEFT JOIN accounts src ON t.sourceaccountid = src.accountid
       WHERE t.destinationaccountid = $1
-        AND t.transactiontypeid = 4444
+        AND t.transactiontypeid = 1
         AND t.transactionstatus = 'PENDING'
       ORDER BY t.initiationtimestamp DESC
     `, [merchantId]);
@@ -203,7 +203,7 @@ export const getPendingBills = async (req, res) => {
         id: bill.transactionid,
         customerAccount: bill.sourceaccountid,
         customerName: bill.customer_name,
-        amount: parseFloat(bill.totalamount),
+        amount: parseFloat(bill.subamount),
         description: referenceData.description || '',
         dueDate: referenceData.dueDate || null,
         externalTransactionId: referenceData.externalTxId || '',
@@ -236,7 +236,7 @@ export const updateBillStatus = async (req, res) => {
 
     // Get transaction details
     const transactionResult = await client.query(
-      'SELECT * FROM transaction WHERE transactionid = $1 AND destinationaccountid = $2 AND transactiontypeid = 4444',
+      'SELECT * FROM transaction WHERE transactionid = $1 AND destinationaccountid = $2 AND transactiontypeid = 1',
       [billId, merchantId]
     );
 
@@ -258,28 +258,26 @@ export const updateBillStatus = async (req, res) => {
       }
 
       const customerBalance = parseFloat(customerResult.rows[0].availablebalance);
-      if (customerBalance < parseFloat(transaction.totalamount)) {
+      if (customerBalance < parseFloat(transaction.subamount)) {
         throw new Error('Customer has insufficient balance');
       }
 
       // Process the payment
       await client.query(`
         UPDATE accounts SET
-          availablebalance = availablebalance - $1,
           currentbalance = currentbalance - $1
         WHERE accountid = $2
-      `, [transaction.totalamount, transaction.sourceaccountid]);
+      `, [transaction.subamount, transaction.sourceaccountid]);
 
       await client.query(`
         UPDATE accounts SET
-          availablebalance = availablebalance + $1,
           currentbalance = currentbalance + $1
         WHERE accountid = $2
-      `, [transaction.totalamount, merchantId]);
+      `, [transaction.subamount, merchantId]);
 
       // Update transaction to completed
       await client.query(`
-        UPDATE transaction SET
+        UPDATE transactions SET
           transactionstatus = 'COMPLETED',
           completiontimestamp = NOW()
         WHERE transactionid = $1
@@ -287,7 +285,7 @@ export const updateBillStatus = async (req, res) => {
     } else {
       // Update transaction status only
       await client.query(`
-        UPDATE transaction SET
+        UPDATE transactions SET
           transactionstatus = $1
         WHERE transactionid = $2
       `, [status, billId]);
@@ -307,7 +305,7 @@ export const updateBillStatus = async (req, res) => {
 };
 
 export const getMerchantTransactions = async (req, res) => {
-  const merchantId = req.user?.accountId;
+  const merchantId = req.user?.accountid;
   const { filter = 'all', dateRange = 'today' } = req.query;
 
   if (!merchantId) {
@@ -339,12 +337,12 @@ export const getMerchantTransactions = async (req, res) => {
       SELECT 
         t.*,
         tt.transactiontypename,
-        src.accountname as customer_name
-      FROM transaction t
+        src.username as customer_name
+      FROM transactions t
       JOIN transactiontype tt ON t.transactiontypeid = tt.transactiontypeid
       LEFT JOIN accounts src ON t.sourceaccountid = src.accountid
       WHERE t.destinationaccountid = $1 
-        AND t.transactiontypeid = 4444 
+        AND t.transactiontypeid = 1
         ${dateCondition} ${statusCondition}
       ORDER BY t.initiationtimestamp DESC
       LIMIT 100
@@ -360,7 +358,7 @@ export const getMerchantTransactions = async (req, res) => {
 
       return {
         ...tx,
-        amount: parseFloat(tx.totalamount),
+        amount: parseFloat(tx.subamount),
         timestamp: tx.initiationtimestamp,
         status: tx.transactionstatus,
         customerName: tx.customer_name,
