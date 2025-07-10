@@ -78,7 +78,7 @@ const listenForNotifications = async () => {
   client.on('notification', (msg) => {
     const payload = JSON.parse(msg.payload);
     const { recipient_id } = payload;
-    console.log('📨 DB Notification:', payload);
+    console.log('DB Notification:', payload);
 
     // Send notification to the intended user's socket room
     io.to(recipient_id).emit('notification', payload);
@@ -86,9 +86,9 @@ const listenForNotifications = async () => {
 };
 
 listenForNotifications().catch((err) => {
-  console.error('❌ Error setting up DB notification listener:', err);
+  console.error('Error setting up DB notification listener:', err);
 });
 
 server.listen(3000, () => {
-  console.log('🚀 Server running on http://localhost:3000');
+  console.log('Server running on http://localhost:3000');
 });

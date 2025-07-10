@@ -5,6 +5,7 @@ import PersonalDashboard from './PersonalDashboard';
 import AdminDashboard from './AdminDashboard';
 import AgentDashboard from './agent/AgentDashboard';
 import MerchantDashboard from './merchant/MerchantDashboard';
+import { Bell } from 'lucide-react';
 // Import other dashboard types as needed
 
 const Dashboard = () => {

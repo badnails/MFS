@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
     const newSocket = io('http://localhost:3000'); // adjust if using remote server
     newSocket.emit('register', user.accountid); // use user._id or user.user_id depending on your backend
     newSocket.on('notification', (data) => {
-      console.log('🔔 Notification received:', data);
+      console.log('Notification received:', data);
       // optionally show toast or update notification state here
       toast.info(`${data.message}`, {
         position: 'top-right',
