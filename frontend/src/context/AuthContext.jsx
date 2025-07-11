@@ -47,11 +47,11 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
   if (user) {
-    const newSocket = io('http://localhost:3000'); // adjust if using remote server
-    newSocket.emit('register', user.accountid); // use user._id or user.user_id depending on your backend
+    const newSocket = io('http://localhost:3000');
+    newSocket.emit('register', user.accountid);
     newSocket.on('notification', (data) => {
       console.log('Notification received:', data);
-      // optionally show toast or update notification state here
+      
       toast.info(`${data.message}`, {
         position: 'top-right',
         autoClose: 200000,

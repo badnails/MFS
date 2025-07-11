@@ -95,7 +95,6 @@ const PersonalDashboard = () => {
 
   const closeModal = () => {
     setActiveModal(null);
-    // Refresh dashboard data after any transaction
     fetchDashboardData();
   };
 

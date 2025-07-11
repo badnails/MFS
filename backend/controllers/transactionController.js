@@ -87,7 +87,7 @@ export const verifyAccount = async (req, res) => {
 
   try {
     const result = await pool.query(
-      'SELECT accountid, accountname, accounttype, accountstatus FROM accounts WHERE accountid = $1',
+      'SELECT accountid, username, accounttype, accountstatus FROM accounts WHERE accountid = $1',
       [accountId]
     );
 
