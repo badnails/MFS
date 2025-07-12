@@ -2,14 +2,34 @@ import pool from "../db.js";
 import bcrypt from "bcrypt";
 import otplib from "otplib";
 import qrcode from "qrcode";
-import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { getLocationInfo } from "../utils/location.js";
 
-export const loginUser_AccPass = async (req, res) => {
-  const { username, password } = req.body;
+export const PassCheck = async (req, res) => {
+  const {username, password, authFor} = req.body;
   const { ipAddress, locationInfo } = await getLocationInfo(req);
+  const result = await passcheckutil(username, password, ipAddress, locationInfo);
+  if(result.valid)
+  {
+    const data = result.data;
+    if(authFor==="LOGIN")
+    {
+      const token = jwt.sign({accountid: data.accountid, username: data.username, accounttype: data.accounttype}, process.env.JWT_SECRET, {expiresIn: "1h"});
+      return res.status(200).json({valid: true, token, user: { accountid: data.accountid, username: data.username, accounttype: data.accounttype}});
+    }
+    else if(authFor==="TRX")
+    {
+      return res.status(200).json({valid: true, message: "User verified"});
+    }
+  }
+  else
+  {
+    if(result.error === "BLOCK") return userBlockCheck(req, res);
+    return res.status(401).json({valid: false, message: result.error});
+  }
+}
 
+const passcheckutil = async (username, password, ipAddress, locationInfo) => {
   try {
     const result = await pool.query(
       "SELECT * FROM accounts WHERE username = $1",
@@ -18,16 +38,12 @@ export const loginUser_AccPass = async (req, res) => {
     const user = result.rows[0];
 
     if (!user) {
-      // await pool.query(
-      //     'INSERT INTO authenticationevents (userid, eventtimestamp, authtype, issuccessful, ipaddress, locationinfo) VALUES ($1, NOW(), $2, $3, $4, $5)',
-      //     [username, 'PASSWORD', false, ipAddress, locationInfo]
-      // );
-      return res.status(401).json({ error: "Invalid username" });
+      return {valid:false, error: "User not found"};
     }
 
     if(user.accountstatus === "BLOCKED")
     {
-        return userBlockCheck(req, res);
+        return {valid:false, error:"BLOCK"};
     }
 
     const isMatch = await bcrypt.compare(password, user.pinhash);
@@ -37,7 +53,7 @@ export const loginUser_AccPass = async (req, res) => {
         "INSERT INTO authenticationevents (userid, eventtimestamp, authtype, issuccessful, ipaddress, locationinfo) VALUES ($1, NOW(), $2, $3, $4, $5)",
         [user.accountid, "PASSWORD", false, ipAddress, locationInfo]
       );
-      return res.status(401).json({ error: "Invalid username or password" });
+      return {valid:false, error: "Incorrect Password"};
     }
 
     await pool.query(
@@ -45,33 +61,31 @@ export const loginUser_AccPass = async (req, res) => {
       [user.accountid, "PASSWORD", true, ipAddress, locationInfo]
     );
 
-    const token = jwt.sign(
-      {
-        accountid: user.accountid,
-        username: user.username,
-        accounttype: user.accounttype,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+    return {valid: true, data:{accountid: user.accountid, username: user.username, accounttype: user.accounttype}};
 
-    res.json({
-        valid: true,
-      token,
-      user: {
-        accountid: user.accountid,
-        name: user.accountname,
-        accounttype: user.accounttype,
-      },
-    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Something went wrong" });
+    return {valid:false, error: "Something went wrong"};
   }
 };
 
-export const loginUser_OTP = async (req, res) => {
-  const { username, password, otp } = req.body;
+export const LoginOTPCheck = async (req, res) => {
+  const {username, otp} = req.body;
+  const result = otpchecker(username, password);
+  if(result.valid)
+  {
+    const data = result.data;
+    const token = jwt.sign({accountid: data.accountid, username: data.username, accounttype: data.accounttype}, process.env.JWT_SECRET, {expiresIn: "1h"});
+    return res.status(200).json({valid: true, token, user: { accountid: user.accountid, name: user.accountname, accounttype: user.accounttype,}});
+  }
+  else
+  {
+    if(result.error === "BLOCK") return userBlockCheck(req, res);
+    return res.status(401).json({valid: false, message: result.error});
+  }
+}
+
+const otpchecker = async (username, otp) => {
   const { ipAddress, locationInfo } = await getLocationInfo(req);
 
   try {
@@ -82,24 +96,22 @@ export const loginUser_OTP = async (req, res) => {
     const user = result.rows[0];
 
     if (!user) {
-      // await pool.query(
-      //     'INSERT INTO authenticationevents (userid, eventtimestamp, authtype, issuccessful, ipaddress, locationinfo) VALUES ($1, NOW(), $2, $3, $4, $5)',
-      //     [username, 'OTP', false, ipAddress, locationInfo]
-      // );
-      return res.status(401).json({ error: "Invalid username or password" });
+      return {valid:false, error: "User not found"};
     }
 
-    const isMatch = await bcrypt.compare(password, user.pinhash);
+    if(user.accountstatus === "BLOCKED")
+    {
+        return {valid:false, error:"BLOCK"};
+    }
+
     const otpmatch = otplib.authenticator.check(otp, user.totpcode);
 
-    if (!isMatch || !otpmatch) {
+    if (!otpmatch) {
       await pool.query(
         "INSERT INTO authenticationevents (userid, eventtimestamp, authtype, issuccessful, ipaddress, locationinfo) VALUES ($1, NOW(), $2, $3, $4, $5)",
         [user.accountid, "OTP", false, ipAddress, locationInfo]
       );
-      return res
-        .status(401)
-        .json({ error: "Invalid username, password or OTP" });
+      return {valid:false, error: "Incorrect Password"};
     }
 
     await pool.query(
@@ -107,28 +119,15 @@ export const loginUser_OTP = async (req, res) => {
       [user.accountid, "OTP", true, ipAddress, locationInfo]
     );
 
-    const token = jwt.sign(
-      {
-        accountid: user.accountid,
-        username: user.accountname,
-        accounttype: user.accounttype,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-    res.json({
-      token,
-      user: {
-        accountid: user.accountid,
-        username: user.accountname,
-        accounttype: user.accounttype,
-      },
-    });
+    return {valid: true, data:{accountid: user.accountid, username: user.username, accounttype: user.accounttype}};
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Something went wrong" });
+    return {valid:false, error: "Something went wrong"};
   }
 };
+
+
 export const signupUser = async (req, res) => {
   const { username, password, accounttype } = req.body;
 
@@ -188,7 +187,7 @@ export const authenticateJWT = (req, res, next) => {
   const token = authHeader.split(" ")[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // access via req.user.accountId
+    req.user = decoded;
     next();
   } catch (err) {
     return res.status(401).json({ error: "Invalid or expired token" });

@@ -81,12 +81,19 @@ const PaymentComponent = () => {
         description
       });
 
+      console.log(response.data);
       const { transactionId } = response.data;
+      console.log(transactionId);
       
       // Redirect to dummy payment URL with transaction ID
-      const paymentUrl = `https://tpg-six.vercel.app/gateway?transactionid=${transactionId}&redirectURL=${encodeURIComponent(window.location.origin + '/payment-completion')}`;
+      // const paymentUrl = `https://tpg-six.vercel.app/gateway?transactionid=${transactionId}&redirectURL=${encodeURIComponent(window.location.origin + '/payment-completion')}`;
       
-      window.location.href = paymentUrl;
+      // window.location.href = paymentUrl;
+      navigate('/payment-pass', {
+      state: {
+        transactionId
+      }
+    });
       
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to initiate payment');

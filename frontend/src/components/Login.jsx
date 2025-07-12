@@ -111,7 +111,7 @@ const Login = () => {
 
       const location = await getGeolocation();
 
-      const response = await axios.post("/auth/loginUserInit", formData, {
+      const response = await axios.post("/auth/PassCheck", {...formData, authFor: "LOGIN"}, {
         headers: {
           "X-User-Location": location ? JSON.stringify(location) : undefined,
         },

@@ -11,6 +11,8 @@ import PaymentCompletion from './components/payment/PaymentCompletion';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import AgentDashboard from './components/agent/AgentDashboard';
 import { ToastContainer } from 'react-toastify';
+import PaymentPassword from './components/payment/PaymentPassword';
+import PaymentOTP from './components/payment/PaymentOTP';
 
 
 function App() {
@@ -30,6 +32,16 @@ function App() {
             <Route path="/payment" element={
               <ProtectedRoute>
                 <PaymentComponent />
+              </ProtectedRoute>
+            } />
+            <Route path="/payment-pass" element={
+              <ProtectedRoute>
+                <PaymentPassword />
+              </ProtectedRoute>
+            } />
+            <Route path="/payment-otp" element={
+              <ProtectedRoute>
+                <PaymentOTP />
               </ProtectedRoute>
             } />
             <Route

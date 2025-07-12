@@ -1,13 +1,13 @@
 // src/components/payment/PaymentCompletion.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2, Home, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 
 const PaymentCompletion = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const transactionId = searchParams.get('transactionid');
+  const location = useLocation();
+  const {transactionId} = location.state || {};
   
   const [paymentStatus, setPaymentStatus] = useState('checking'); // checking, success, failed
   const [transactionDetails, setTransactionDetails] = useState(null);
@@ -25,10 +25,11 @@ const PaymentCompletion = () => {
 
   const checkPaymentStatus = async () => {
     try {
-      const response = await axios.get(`/transaction/status/${transactionId}`);
-      const { status, transaction } = response.data;
+      const response = await axios.get(`/transaction/details/${transactionId}`);
+      const { transactionDetails } = response.data;
       
-      setTransactionDetails(transaction);
+      setTransactionDetails(transactionDetails);
+      const status = transactionDetails.status;
       
       if (status === 'COMPLETED' || status === 'SUCCESS') {
         setPaymentStatus('success');
@@ -135,15 +136,15 @@ const PaymentCompletion = () => {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-green-700">Amount:</span>
-                  <span className="font-medium">{formatCurrency(transactionDetails.amount)}</span>
+                  <span className="font-medium">{formatCurrency(transactionDetails.subamount)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-green-700">To:</span>
-                  <span className="font-medium">{transactionDetails.recipientId}</span>
+                  <span className="font-medium">{transactionDetails.recipient}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-green-700">Date:</span>
-                  <span className="font-medium">{formatDate(transactionDetails.completedAt)}</span>
+                  <span className="font-medium">{formatDate(transactionDetails.completed_on)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-green-700">Transaction ID:</span>
