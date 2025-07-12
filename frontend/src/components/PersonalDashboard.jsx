@@ -1,15 +1,21 @@
 // src/components/PersonalDashboard.jsx
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { LogOut, Wallet, History, User, RefreshCw, Send, CreditCard, Store, Receipt } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import {
+  Wallet,
+  History,
+  RefreshCw,
+  Send,
+  CreditCard,
+  Store,
+  Receipt
+} from 'lucide-react';
 import SendMoney from './personal/SendMoney';
 import CashOut from './personal/CashOut';
 import MerchantPayment from './personal/MerchantPayment';
 import BillPayment from './personal/BillPayment';
-import axios from 'axios';
 
 const PersonalDashboard = () => {
-  const { user, logout } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -32,10 +38,6 @@ const PersonalDashboard = () => {
   useEffect(() => {
     fetchDashboardData();
   }, []);
-
-  const handleLogout = () => {
-    logout();
-  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -110,205 +112,109 @@ const PersonalDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Wallet className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-xl font-semibold text-gray-900">MFS Dashboard</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <User className="h-5 w-5 text-gray-400" />
-                <span className="text-sm text-gray-700">{user?.accountname}</span>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <LogOut className="h-5 w-5" />
-                <span className="text-sm">Logout</span>
-              </button>
-            </div>
-          </div>
+    <div>
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
+          {error}
+          <button
+            onClick={fetchDashboardData}
+            className="ml-2 underline hover:no-underline"
+          >
+            Retry
+          </button>
         </div>
-      </header>
+      )}
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          {error && (
-            <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-              {error}
-              <button
-                onClick={fetchDashboardData}
-                className="ml-2 underline hover:no-underline"
-              >
-                Retry
-              </button>
-            </div>
+      {/* Account Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <OverviewCard title="Available Balance" icon={Wallet} color="green" value={formatCurrency(dashboardData?.user?.availablebalance)} />
+        <OverviewCard title="Current Balance" icon={Wallet} color="blue" value={formatCurrency(dashboardData?.user?.currentbalance)} />
+        <OverviewCard title="Account Status" icon={Receipt} color="purple" value={dashboardData?.user?.accountstatus || 'Active'} />
+      </div>
+
+      {/* Quick Actions */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {quickActions.map(({ id, title, description, icon: Icon, color, hoverColor }) => (
+            <button
+              key={id}
+              onClick={() => openModal(id)}
+              className={`${color} ${hoverColor} text-white p-6 rounded-xl shadow-sm transition-transform duration-200 hover:scale-105`}
+            >
+              <div className="flex flex-col items-center text-center">
+                <Icon className="h-8 w-8 mb-3" />
+                <h3 className="font-semibold text-lg">{title}</h3>
+                <p className="text-sm opacity-90">{description}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Transactions */}
+      <div className="bg-white shadow overflow-hidden sm:rounded-md">
+        <div className="px-4 py-5 sm:px-6 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-medium text-gray-900">Recent Transactions</h3>
+            <p className="text-sm text-gray-500">Your latest transaction history</p>
+          </div>
+          <button
+            onClick={fetchDashboardData}
+            className="btn-secondary flex items-center space-x-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span>Refresh</span>
+          </button>
+        </div>
+        <ul className="divide-y divide-gray-200">
+          {dashboardData?.transactions?.length > 0 ? (
+            dashboardData.transactions.map((t, idx) => (
+              <li key={idx} className="px-4 py-4 sm:px-6">
+                <div className="flex justify-between">
+                  <div className="flex items-center">
+                    <History className="h-5 w-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{t.transactiontypename || 'Transaction'}</p>
+                      <p className="text-sm text-gray-500">{formatDate(t.initiationtimestamp)}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-900">{formatCurrency(t.totalamount)}</p>
+                    <p className="text-sm text-gray-500">Status: {t.transactionstatus || 'Completed'}</p>
+                  </div>
+                </div>
+              </li>
+            ))
+          ) : (
+            <li className="px-4 py-8 text-center">
+              <History className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500">No transactions found</p>
+            </li>
           )}
-
-          {/* Account Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <Wallet className="h-6 w-6 text-green-600" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        Available Balance
-                      </dt>
-                      <dd className="text-lg font-medium text-gray-900">
-                        {dashboardData?.user ? formatCurrency(dashboardData.user.availablebalance) : '$0.00'}
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <Wallet className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        Current Balance
-                      </dt>
-                      <dd className="text-lg font-medium text-gray-900">
-                        {dashboardData?.user ? formatCurrency(dashboardData.user.currentbalance) : '$0.00'}
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <User className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        Account Status
-                      </dt>
-                      <dd className="text-lg font-medium text-gray-900">
-                        {dashboardData?.user?.accountstatus || 'Active'}
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {quickActions.map((action) => {
-                const Icon = action.icon;
-                return (
-                  <button
-                    key={action.id}
-                    onClick={() => openModal(action.id)}
-                    className={`${action.color} ${action.hoverColor} text-white p-6 rounded-xl shadow-sm transition-all duration-200 transform hover:scale-105 hover:shadow-md`}
-                  >
-                    <div className="flex flex-col items-center text-center">
-                      <Icon className="h-8 w-8 mb-3" />
-                      <h3 className="font-semibold text-lg mb-1">{action.title}</h3>
-                      <p className="text-sm opacity-90">{action.description}</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Recent Transactions */}
-          <div className="bg-white shadow overflow-hidden sm:rounded-md">
-            <div className="px-4 py-5 sm:px-6 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  Recent Transactions
-                </h3>
-                <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                  Your latest transaction history
-                </p>
-              </div>
-              <button
-                onClick={fetchDashboardData}
-                className="btn-secondary flex items-center space-x-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                <span>Refresh</span>
-              </button>
-            </div>
-            <ul className="divide-y divide-gray-200">
-              {dashboardData?.transactions?.length > 0 ? (
-                dashboardData.transactions.map((transaction, index) => (
-                  <li key={index} className="px-4 py-4 sm:px-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <History className="h-5 w-5 text-gray-400 mr-3" />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {transaction.transactiontypename || 'Transaction'}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {formatDate(transaction.initiationtimestamp)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-gray-900">
-                          {formatCurrency(transaction.totalamount)}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Status: {transaction.transactionstatus || 'Completed'}
-                        </p>
-                      </div>
-                    </div>
-                  </li>
-                ))
-              ) : (
-                <li className="px-4 py-8 text-center">
-                  <History className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">No transactions found</p>
-                </li>
-              )}
-            </ul>
-          </div>
-        </div>
-      </main>
+        </ul>
+      </div>
 
       {/* Modals */}
-      {activeModal === 'send-money' && (
-        <SendMoney onClose={closeModal} />
-      )}
-      {activeModal === 'cash-out' && (
-        <CashOut onClose={closeModal} />
-      )}
-      {activeModal === 'merchant-payment' && (
-        <MerchantPayment onClose={closeModal} />
-      )}
-      {activeModal === 'bill-payment' && (
-        <BillPayment onClose={closeModal} />
-      )}
+      {activeModal === 'send-money' && <SendMoney onClose={closeModal} />}
+      {activeModal === 'cash-out' && <CashOut onClose={closeModal} />}
+      {activeModal === 'merchant-payment' && <MerchantPayment onClose={closeModal} />}
+      {activeModal === 'bill-payment' && <BillPayment onClose={closeModal} />}
     </div>
   );
 };
+
+// Optional: Extract this to its own file if reused
+const OverviewCard = ({ title, icon: Icon, color, value }) => (
+  <div className="bg-white overflow-hidden shadow rounded-lg">
+    <div className="p-5 flex items-center">
+      <Icon className={`h-6 w-6 text-${color}-600`} />
+      <div className="ml-5">
+        <dt className="text-sm text-gray-500">{title}</dt>
+        <dd className="text-lg font-medium text-gray-900">{value}</dd>
+      </div>
+    </div>
+  </div>
+);
 
 export default PersonalDashboard;

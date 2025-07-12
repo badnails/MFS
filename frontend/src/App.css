@@ -40,3 +40,21 @@
 .read-the-docs {
   color: #888;
 }
+
+@keyframes float {
+  0% {
+    transform: translateY(100vh) rotate(0deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(-10vh) rotate(360deg);
+    opacity: 1;
+  }
+}
+
+.floating-icon {
+  position: absolute;
+  animation: float linear infinite;
+  font-size: 1.25rem;
+  opacity: 0.1;
+}

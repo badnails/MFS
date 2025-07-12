@@ -49,28 +49,28 @@ const AdminOverview = () => {
       value: stats.totalAccounts,
       icon: Users,
       color: 'bg-blue-500',
-      change: '+12%'
+      // change: '+12%'
     },
     {
       title: 'Total Balance',
       value: formatCurrency(stats.totalBalance),
       icon: CreditCard,
       color: 'bg-green-500',
-      change: '+8%'
+      // change: '+8%'
     },
     {
       title: 'Recent Transactions',
       value: stats.recentTransactions,
       icon: TrendingUp,
       color: 'bg-purple-500',
-      change: '+23%'
+      // change: '+23%'
     },
     {
       title: 'Active Users',
       value: stats.activeUsers,
       icon: Activity,
       color: 'bg-orange-500',
-      change: '+5%'
+      // change: '+5%'
     }
   ];
 
@@ -99,7 +99,7 @@ const AdminOverview = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600">{stat.title}</p>
                   <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
-                  <p className="text-sm text-green-600 mt-1">{stat.change} from last month</p>
+                  <p className="text-sm text-green-600 mt-1">{stat.change} from last hour</p>
                 </div>
                 <div className={`${stat.color} p-3 rounded-lg`}>
                   <Icon className="h-6 w-6 text-white" />

@@ -25,7 +25,8 @@ const TransactionsView = () => {
     try {
       setLoading(true);
       const response = await axios.get('/admin/transactions');
-      setTransactions(response.data.transactions || []);
+      
+      setTransactions(response.data || []);
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
     } finally {
@@ -206,8 +207,8 @@ const TransactionsView = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      <div>From: {transaction.fromaccountid || 'System'}</div>
-                      <div>To: {transaction.toaccountid || 'System'}</div>
+                      <div>From: {transaction.source_name || 'System'}</div>
+                      <div>To: {transaction.destination_name || 'System'}</div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -217,7 +218,7 @@ const TransactionsView = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      {formatCurrency(transaction.totalamount)}
+                      {formatCurrency(transaction.subamount)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

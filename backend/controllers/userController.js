@@ -168,19 +168,22 @@ export const getUserBalance = async (req, res) => {
   }
 };
 
+export const get_notifications = async(req, res) =>{
+  const accountId = req.user?.accountid;
+
+  try {
+    const result = await pool.query(
+      'SELECT * FROM get_recent_notifications($1)',
+      [accountId]
+    );
+
+    const notifications = result.rows;
+    res.json({ notifications });
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ error: 'Failed to retrieve notifications' });
+  }
+
+}
 
 
-// export async function searchAccounts(req, res) {
-//     try {
-//         const type = req.query.type || '';
-//         const query = req.query.query || '';
-//         const accid = parseInt(query) || null;
-//         const result = await pool.query(`SELECT * FROM accounts WHERE accounttype=$1 AND (accountid=$2 OR accountname=$3)`, [type, accid, query]);
-//         const out = result.rows;
-//         console.log(out)
-//         return res.json({ accounts: out });
-//     } catch (err) {
-//         console.error('SEARCH ACC:', err.message);
-//         return res.status(500).json({ error: 'Internal server error' });
-//     }
-// }

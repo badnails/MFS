@@ -2,21 +2,15 @@ import pool from '../../db.js';
 
 export async function getSummary(req, res) {
     try {
-        const result = await pool.query(`
-            SELECT
-                (SELECT COUNT(*) FROM accounts) AS accnum,
-                (SELECT SUM(availablebalance) FROM accounts) AS totalbalance,
-                (SELECT COUNT(*) FROM accounts WHERE accountstatus = 'ACTIVE') AS activeusers,
-                (SELECT COUNT(*) FROM transactions WHERE transactionstatus = 'COMPLETED') AS recentcount;
-        `);
+        const result = await pool.query(`SELECT * FROM get_statscard_data();`);
 
         const data = result.rows[0];
 
         res.json({
-            totalAccounts: parseInt(data.accnum),
-            totalBalance: parseFloat(data.totalbalance) || 0,
-            activeUsers: parseInt(data.activeusers),
-            recentCount: parseInt(data.recentcount)
+            totalAccounts: Number(data.total_accounts),
+            totalBalance: parseFloat(data.total_balance) || 0,
+            activeUsers: Number(data.active_users),
+            recentCount: Number(data.recent_transactions)
         });
     } catch (error) {
         console.error('Error fetching account stats:', error);
