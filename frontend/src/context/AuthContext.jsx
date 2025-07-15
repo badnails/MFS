@@ -1,9 +1,9 @@
 // src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
 import axios from 'axios';
-import { toast, ToastContainer } from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import notificationService from '../services/notificationService.js';
 
 
 const AuthContext = createContext();
@@ -17,14 +17,12 @@ export const useAuth = () => {
 };
 
 // Configure axios base URL
-axios.defaults.baseURL = "http://localhost:3000";
+axios.defaults.baseURL = "http://localhost:8000";
 axios.defaults.headers.common["ngrok-skip-browser-warning"] = "true";
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [socket, setSocket] = useState(null);
-
 
   useEffect(() => {
     const token = sessionStorage.getItem("token");
@@ -44,29 +42,15 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-
   useEffect(() => {
-  if (user) {
-    const newSocket = io('http://localhost:3000');
-    newSocket.emit('register', user.accountid);
-    newSocket.on('notification', (data) => {
-      console.log('Notification received:', data);
-      
-      toast.info(`${data.message}`, {
-        position: 'top-right',
-        autoClose: 200000,
-        pauseOnHover: true,
-        draggable: true,
-        closeOnClick: true
-      });
-    });
-    setSocket(newSocket);
-
-    return () => {
-      newSocket.disconnect();
-    };
-  }
-}, [user]);
+    if (user) {
+      // Initialize notification service when user logs in
+      notificationService.initialize(user.accountid);
+    } else {
+      // Cleanup notification service when user logs out
+      notificationService.cleanup();
+    }
+  }, [user]);
 
 
   const login = (token, userData) => {
@@ -93,6 +77,18 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={value}>
       {!loading && children}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </AuthContext.Provider>
   );
 };
