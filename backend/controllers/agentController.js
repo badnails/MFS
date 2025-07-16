@@ -2,7 +2,7 @@
 import pool from '../db.js';
 
 export const getAgentDashboard = async (req, res) => {
-  const agentId = req.user?.accountId;
+  const agentId = req.user?.accountid;
   
   if (!agentId) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -22,43 +22,39 @@ export const getAgentDashboard = async (req, res) => {
     const agent = agentResult.rows[0];
 
     // Get recent transactions (last 10)
-    const recentTransactionsResult = await pool.query(`
-      SELECT 
-        t.*,
-        tt.transactiontypename,
-        CASE 
-          WHEN t.sourceaccountid = $1 THEN 'CASH_OUT'
-          WHEN t.destinationaccountid = $1 THEN 'CASH_IN'
-        END as type,
-        CASE 
-          WHEN t.sourceaccountid = $1 THEN dest.accountname
-          WHEN t.destinationaccountid = $1 THEN src.accountname
-        END as customerName,
-        CASE 
-          WHEN t.sourceaccountid = $1 THEN t.destinationaccountid
-          WHEN t.destinationaccountid = $1 THEN t.sourceaccountid
-        END as customerAccount
-      FROM transaction t
-      JOIN transactiontype tt ON t.transactiontypeid = tt.transactiontypeid
-      LEFT JOIN accounts src ON t.sourceaccountid = src.accountid
-      LEFT JOIN accounts dest ON t.destinationaccountid = dest.accountid
-      WHERE (t.sourceaccountid = $1 OR t.destinationaccountid = $1)
-        AND t.transactionstatus = 'COMPLETED'
-      ORDER BY t.initiationtimestamp DESC
-      LIMIT 10
-    `, [agentId]);
+    // const recentTransactionsResult = await pool.query(`
+    //   SELECT 
+    //     t.*
+    //     CASE 
+    //       WHEN t.sourceaccountid = $1 THEN 'CASH_OUT'
+    //       WHEN t.destinationaccountid = $1 THEN 'CASH_IN'
+    //     END as type,
+    //     CASE 
+    //       WHEN t.sourceaccountid = $1 THEN dest.username
+    //       WHEN t.destinationaccountid = $1 THEN src.username
+    //     END as customerName,
+    //     CASE 
+    //       WHEN t.sourceaccountid = $1 THEN t.destinationaccountid
+    //       WHEN t.destinationaccountid = $1 THEN t.sourceaccountid
+    //     END as customerAccount
+    //   FROM transactions t
+    //   LEFT JOIN accounts src ON t.sourceaccountid = src.accountid
+    //   LEFT JOIN accounts dest ON t.destinationaccountid = dest.accountid
+    //   WHERE (t.sourceaccountid = $1 OR t.destinationaccountid = $1)
+    //     AND t.transactionstatus = 'COMPLETED'
+    //   ORDER BY t.initiationtimestamp DESC
+    //   LIMIT 10
+    // `, [agentId]);
 
-    const recentTransactions = recentTransactionsResult.rows.map(tx => ({
-      ...tx,
-      amount: parseFloat(tx.totalamount),
-      commission: parseFloat(tx.feesamount || 0),
-      timestamp: tx.initiationtimestamp
-    }));
+    // const recentTransactions = recentTransactionsResult.rows.map(tx => ({
+    //   ...tx,
+    //   amount: parseFloat(tx.totalamount),
+    //   commission: parseFloat(tx.feesamount || 0),
+    //   timestamp: tx.initiationtimestamp
+    // }));
 
     res.json({
-      balance: parseFloat(agent.availablebalance),
-      availableLimit: parseFloat(agent.currentbalance),
-      recentTransactions
+      balance: parseFloat(agent.availablebalance)
     });
 
   } catch (err) {
@@ -68,7 +64,7 @@ export const getAgentDashboard = async (req, res) => {
 };
 
 export const getTodayStats = async (req, res) => {
-  const agentId = req.user?.accountId;
+  const agentId = req.user?.accountid;
   
   if (!agentId) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -80,10 +76,10 @@ export const getTodayStats = async (req, res) => {
       SELECT 
         COUNT(CASE WHEN t.destinationaccountid = $1 THEN 1 END) as cash_in_count,
         COUNT(CASE WHEN t.sourceaccountid = $1 THEN 1 END) as cash_out_count,
-        COALESCE(SUM(CASE WHEN t.destinationaccountid = $1 THEN t.totalamount END), 0) as total_cash_in,
-        COALESCE(SUM(CASE WHEN t.sourceaccountid = $1 THEN t.totalamount END), 0) as total_cash_out,
+        COALESCE(SUM(CASE WHEN t.destinationaccountid = $1 THEN t.subamount END), 0) as total_cash_in,
+        COALESCE(SUM(CASE WHEN t.sourceaccountid = $1 THEN t.subamount END), 0) as total_cash_out,
         COALESCE(SUM(t.feesamount), 0) as total_commission
-      FROM transaction t
+      FROM transactions t
       WHERE (t.sourceaccountid = $1 OR t.destinationaccountid = $1)
         AND t.transactionstatus = 'COMPLETED'
         AND DATE(t.initiationtimestamp) = CURRENT_DATE

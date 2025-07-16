@@ -105,10 +105,10 @@ const AgentDashboard = () => {
               <h2 className="text-lg">Balance</h2>
               <p className="text-3xl font-bold">{formatCurrency(agentData?.balance || 0)}</p>
             </div>
-            <div className="text-right">
+            {/* <div className="text-right">
               <p className="text-sm">Limit</p>
               <p className="text-xl font-semibold">{formatCurrency(agentData?.availableLimit || 0)}</p>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -159,7 +159,7 @@ const AgentDashboard = () => {
             </button>
           </div>
           <div className="border-t">
-            {agentData?.recentTransactions?.length ? (
+            {/* {agentData?.recentTransactions?.length ? (
               <ul className="divide-y">
                 {agentData.recentTransactions.slice(0, 5).map((tx, idx) => (
                   <li key={idx} className="px-4 py-4 flex justify-between">
@@ -191,7 +191,11 @@ const AgentDashboard = () => {
               </ul>
             ) : (
               <div className="px-4 py-8 text-center text-gray-500">No transactions yet today</div>
-            )}
+            )} */}
+            <TransactionHistory
+              accountId={user?.accountid}
+              isModal={false}
+            />
           </div>
         </div>
       </main>
@@ -199,13 +203,6 @@ const AgentDashboard = () => {
       {/* Modals */}
       {activeModal === 'cash-in' && <CashIn onClose={closeModal} />}
       {activeModal === 'cash-out' && <CashOut onClose={closeModal} />}
-      {activeModal === 'history' && (
-        <TransactionHistory 
-          accountId={user?.accountid} 
-          onClose={closeModal} 
-          isModal={true} 
-        />
-      )}
     </div>
   );
 };
