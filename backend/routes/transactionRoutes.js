@@ -1,4 +1,3 @@
-
 // src/routes/transactionRoutes.js
 import express from 'express';
 import { 
@@ -8,7 +7,9 @@ import {
   // getTransactionStatus, 
   generate_trx_id,
   get_transaction_details,
-  finalizeTransaction
+  finalizeTransaction,
+  getTransactionHistory,
+  getTransactionTypes
 } from '../controllers/transactionController.js';
 import { authenticateJWT } from '../controllers/authController.js';
 
@@ -22,6 +23,10 @@ const router = express.Router();
 router.get('/verify-customer/:accountId', authenticateJWT, verifyAccount);
 router.post('/initiate', authenticateJWT, generate_trx_id);
 router.get('/details/:id', get_transaction_details);
-router.post('/finalize-transaction', finalizeTransaction)
+router.post('/finalize-transaction', finalizeTransaction);
+
+// NEW: Transaction history routes
+router.get('/history/:accountid', authenticateJWT, getTransactionHistory);
+router.get('/types', authenticateJWT, getTransactionTypes);
 
 export default router;

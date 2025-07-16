@@ -27,7 +27,7 @@ export const getMerchantDashboard = async (req, res) => {
         COALESCE(SUM(CASE WHEN t.transactionstatus = 'COMPLETED' THEN t.subamount END), 0) as total_revenue,
         COALESCE(SUM(CASE WHEN t.transactionstatus = 'COMPLETED' AND DATE_TRUNC('month', t.completiontimestamp) = DATE_TRUNC('month', CURRENT_DATE) THEN t.subamount END), 0) as monthly_revenue
       FROM transactions t
-      WHERE t.destinationaccountid = $1 AND t.transactiontypeid = 1
+      WHERE t.destinationaccountid = $1 AND t.transactiontype = 'PAYMENT'
     `, [merchantId]);
 
     const revenue = revenueResult.rows[0];
@@ -36,12 +36,10 @@ export const getMerchantDashboard = async (req, res) => {
     const recentBillsResult = await pool.query(`
       SELECT 
         t.*,
-        tt.transactiontypename,
         src.username as customer_name
       FROM transactions t
-      JOIN transactiontype tt ON t.transactiontypeid = tt.transactiontypeid
       LEFT JOIN accounts src ON t.sourceaccountid = src.accountid
-      WHERE t.destinationaccountid = $1 AND t.transactiontypeid = 1
+      WHERE t.destinationaccountid = $1 AND t.transactiontype = 'PAYMENT'
       ORDER BY t.initiationtimestamp DESC
       LIMIT 10
     `, [merchantId]);
@@ -85,7 +83,7 @@ export const getTodayStats = async (req, res) => {
         COALESCE(SUM(CASE WHEN t.transactionstatus = 'COMPLETED' THEN t.subamount END), 0) as total_revenue
       FROM transactions t
       WHERE t.destinationaccountid = $1 
-        AND t.transactiontypeid = 1
+        AND t.transactiontype = 'PAYMENT'
         AND DATE(t.initiationtimestamp) = CURRENT_DATE
     `, [merchantId]);
 
@@ -144,12 +142,12 @@ export const createBill = async (req, res) => {
 
     const transactionResult = await pool.query(`
       INSERT INTO transactions (
-        transactiontypeid, transactionstatus,
+        transactiontype, transactionstatus,
         sourceaccountid, destinationaccountid,
         subamount, feesamount, subamount,
         initiationtimestamp, reference
       ) VALUES (
-        1, 'PENDING',
+        'PAYMENT', 'PENDING',
         $1, $2,
         $3, 0, $3,
         NOW(), $4
@@ -185,7 +183,7 @@ export const getPendingBills = async (req, res) => {
       FROM transactions t
       LEFT JOIN accounts src ON t.sourceaccountid = src.accountid
       WHERE t.destinationaccountid = $1
-        AND t.transactiontypeid = 1
+        AND t.transactiontype = 'PAYMENT'
         AND t.transactionstatus = 'PENDING'
       ORDER BY t.initiationtimestamp DESC
     `, [merchantId]);
@@ -236,7 +234,7 @@ export const updateBillStatus = async (req, res) => {
 
     // Get transaction details
     const transactionResult = await client.query(
-      'SELECT * FROM transaction WHERE transactionid = $1 AND destinationaccountid = $2 AND transactiontypeid = 1',
+      `SELECT * FROM transactions WHERE transactionid = $1 AND destinationaccountid = $2 AND transactiontype = 'PAYMENT'`,
       [billId, merchantId]
     );
 
@@ -336,13 +334,11 @@ export const getMerchantTransactions = async (req, res) => {
     const transactionsResult = await pool.query(`
       SELECT 
         t.*,
-        tt.transactiontypename,
         src.username as customer_name
       FROM transactions t
-      JOIN transactiontype tt ON t.transactiontypeid = tt.transactiontypeid
       LEFT JOIN accounts src ON t.sourceaccountid = src.accountid
       WHERE t.destinationaccountid = $1 
-        AND t.transactiontypeid = 1
+        AND t.transactiontype = 'PAYMENT'
         ${dateCondition} ${statusCondition}
       ORDER BY t.initiationtimestamp DESC
       LIMIT 100

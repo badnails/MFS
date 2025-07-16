@@ -1,6 +1,7 @@
 // src/components/PersonalDashboard.jsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import {
   Wallet,
   History,
@@ -14,8 +15,10 @@ import SendMoney from './personal/SendMoney';
 import CashOut from './personal/CashOut';
 import MerchantPayment from './personal/MerchantPayment';
 import BillPayment from './personal/BillPayment';
+import TransactionHistory from './common/TransactionHistory';
 
 const PersonalDashboard = () => {
+  const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -89,6 +92,14 @@ const PersonalDashboard = () => {
       color: 'bg-orange-500',
       hoverColor: 'hover:bg-orange-600'
     }
+    // {
+    //   id: 'transaction-history',
+    //   title: 'Transaction History',
+    //   description: 'View all your transactions',
+    //   icon: History,
+    //   color: 'bg-indigo-500',
+    //   hoverColor: 'hover:bg-indigo-600'
+    // }
   ];
 
   const openModal = (modalType) => {
@@ -128,15 +139,15 @@ const PersonalDashboard = () => {
       {/* Account Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <OverviewCard title="Available Balance" icon={Wallet} color="green" value={formatCurrency(dashboardData?.user?.availablebalance)} />
-        <OverviewCard title="Current Balance" icon={Wallet} color="blue" value={formatCurrency(dashboardData?.user?.currentbalance)} />
+        {/* <OverviewCard title="Current Balance" icon={Wallet} color="blue" value={formatCurrency(dashboardData?.user?.currentbalance)} /> */}
         <OverviewCard title="Account Status" icon={Receipt} color="purple" value={dashboardData?.user?.accountstatus || 'Active'} />
       </div>
 
       {/* Quick Actions */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map(({ id, title, description, icon: Icon, color, hoverColor }) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {quickActions.map(({ id, title, description, icon: Icon, color, hoverColor }) => ( // eslint-disable-line no-unused-vars
             <button
               key={id}
               onClick={() => openModal(id)}
@@ -152,7 +163,14 @@ const PersonalDashboard = () => {
         </div>
       </div>
 
-      {/* Transactions */}
+      <div>
+        <TransactionHistory 
+          accountId={user?.accountid} 
+          isModal={false} 
+        />
+      </div>
+
+      {/* Transactions
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
         <div className="px-4 py-5 sm:px-6 flex items-center justify-between">
           <div>
@@ -175,7 +193,7 @@ const PersonalDashboard = () => {
                   <div className="flex items-center">
                     <History className="h-5 w-5 text-gray-400 mr-3" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{t.transactiontypename || 'Transaction'}</p>
+                      <p className="text-sm font-medium text-gray-900">{t.transactiontype || 'Transaction'}</p>
                       <p className="text-sm text-gray-500">{formatDate(t.initiationtimestamp)}</p>
                     </div>
                   </div>
@@ -193,19 +211,26 @@ const PersonalDashboard = () => {
             </li>
           )}
         </ul>
-      </div>
+      </div> */}
 
       {/* Modals */}
       {activeModal === 'send-money' && <SendMoney onClose={closeModal} />}
       {activeModal === 'cash-out' && <CashOut onClose={closeModal} />}
       {activeModal === 'merchant-payment' && <MerchantPayment onClose={closeModal} />}
       {activeModal === 'bill-payment' && <BillPayment onClose={closeModal} />}
+      {/* {activeModal === 'transaction-history' && (
+        <TransactionHistory 
+          accountId={user?.accountid} 
+          onClose={closeModal} 
+          isModal={true} 
+        />
+      )} */}
     </div>
   );
 };
 
 // Optional: Extract this to its own file if reused
-const OverviewCard = ({ title, icon: Icon, color, value }) => (
+const OverviewCard = ({ title, icon: Icon, color, value }) => ( // eslint-disable-line no-unused-vars
   <div className="bg-white overflow-hidden shadow rounded-lg">
     <div className="p-5 flex items-center">
       <Icon className={`h-6 w-6 text-${color}-600`} />

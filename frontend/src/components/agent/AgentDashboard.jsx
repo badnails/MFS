@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { LogOut, CreditCard, User, RefreshCw, Plus, Minus, History } from 'lucide-react';
 import CashIn from './CashIn';
 import CashOut from './CashOut';
-import TransactionHistory from './TransactionHistory';
+import TransactionHistory from '../common/TransactionHistory';
 import axios from 'axios';
 
 const AgentDashboard = () => {
@@ -199,7 +199,13 @@ const AgentDashboard = () => {
       {/* Modals */}
       {activeModal === 'cash-in' && <CashIn onClose={closeModal} />}
       {activeModal === 'cash-out' && <CashOut onClose={closeModal} />}
-      {activeModal === 'history' && <TransactionHistory onClose={closeModal} />}
+      {activeModal === 'history' && (
+        <TransactionHistory 
+          accountId={user?.accountid} 
+          onClose={closeModal} 
+          isModal={true} 
+        />
+      )}
     </div>
   );
 };

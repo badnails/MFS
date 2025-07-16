@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, User, Loader2 } from 'lucide-react';
 import axios from 'axios';
+import {useAuth} from '../../context/AuthContext';
 
 const AccountSearch = ({ 
   accountType, 
@@ -10,10 +11,10 @@ const AccountSearch = ({
   displayStyle = 'circles' // 'dropdown' or 'circles'
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [accounts, setAccounts] = useState([]);
   const [filteredAccounts, setFilteredAccounts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
+  const {user} = useAuth();
 
   useEffect(() => {
     if (searchTerm.length >= 3) {
@@ -34,8 +35,8 @@ const AccountSearch = ({
       });
       
       const results = response.data.accounts || [];
-      setAccounts(results);
-      setFilteredAccounts(results);
+      setFilteredAccounts(results.filter(a=>a.accountid!==user.accountid));
+
     } catch (error) {
       console.error('Search failed:', error);
       setFilteredAccounts([]);
