@@ -184,3 +184,27 @@ export const get_notifications = async (req, res) => {
     res.status(500).json({ error: "Failed to retrieve notifications" });
   }
 };
+
+
+export const getBills = async(req, res) => {
+    const customerId = req.user.accountid;
+  const billerId = req.params.accountid;
+  console.log(customerId);
+
+  try {
+    const result = await pool.query(
+      `SELECT b.billid, bb.batchname, b.amount, b.duedate
+       FROM bills b 
+       JOIN billbatches bb on b.batchid = bb.batchid
+       WHERE bb.accountid = $1 AND b.issuedtoaccountid = $2 AND transactionid is NULL
+       ORDER BY duedate ASC`,
+      [billerId, customerId]
+    );
+    console.log(result.rows);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching assigned bills:', err);
+    res.status(500).json({ error: 'Failed to fetch bills' });
+  }
+
+}
