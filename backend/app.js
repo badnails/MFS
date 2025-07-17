@@ -53,6 +53,7 @@ app.use('/admin', adminRoutes);
 app.use('/agent', agentRoutes);
 app.use('/merchant', merchantRoutes);
 
+
 // 404 fallback
 app.use((req, res) => res.status(404).send('Route not found'));
 

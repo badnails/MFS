@@ -6,6 +6,7 @@ import AdminDashboard from './AdminDashboard';
 import AgentDashboard from './agent/AgentDashboard';
 import MerchantDashboard from './merchant/MerchantDashboard';
 import DashboardLayout from './DashboardLayout';
+import BillerDashboard from './biller/BillerDashboard';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -19,6 +20,9 @@ const Dashboard = () => {
       case 'MERCHANT':
         return <MerchantDashboard />;
       case 'PERSONAL':
+        return <PersonalDashboard />;
+      case 'BILLER':
+        return <BillerDashboard />
       default:
         return <PersonalDashboard />;
     }
