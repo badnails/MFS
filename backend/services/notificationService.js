@@ -158,7 +158,7 @@ class NotificationService {
           const type = row.notification_type;
           return {
             ...row,
-            message: `You have ${type === "CREDIT" ? "received" : "sent"} BDT ${amount}${type === "CREDIT" ? " from " : " to "}${trx_data.recipient}`,
+            message: `You have ${type === "CREDIT" ? "received" : "sent"} BDT ${amount}${type === "CREDIT" ? ` from ${trx_data.sender}` : ` to ${trx_data.recipient}`}`,
             transactiontype: trx_data.type
           };
         }

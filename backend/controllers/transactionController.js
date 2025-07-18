@@ -245,14 +245,10 @@ export async function get_transaction_details(req, res, trxid) {
 
     const query = `
             SELECT 
-                t.transactiontype,
-                a.username,
-                t.subamount,
-                t.feesamount,
-                t.transactionstatus,
-                t.completiontimestamp
+                t.*,
+                (SELECT username FROM accounts WHERE accountid = t.sourceaccountid) AS source,
+                (SELECT username FROM accounts WHERE accountid = t.destinationaccountid) AS destination
             FROM transactions t 
-            JOIN accounts a ON t.destinationaccountid = a.accountid 
             WHERE t.transactionid = $1
         `;
 
@@ -274,7 +270,8 @@ export async function get_transaction_details(req, res, trxid) {
           id: trxID,
           type: trx.transactiontype,
           status: trx.transactionstatus,
-          recipient: trx.username,
+          sender: trx.source,
+          recipient: trx.destination,
           subamount: trx.subamount,
           feesamount: trx.feesamount,
           completed_on: trx.completiontimestamp || null,
@@ -287,7 +284,8 @@ export async function get_transaction_details(req, res, trxid) {
           id: trxID,
           type: trx.transactiontype,
           status: trx.transactionstatus,
-          recipient: trx.username,
+          sender: trx.source,
+          recipient: trx.destination,
           subamount: trx.subamount,
           feesamount: trx.feesamount,
           completed_on: trx.completiontimestamp || null,
@@ -333,7 +331,7 @@ export async function get_transaction_details(req, res, trxid) {
 export async function finalizeTransaction(req, res) {
   try {
     const { accountid, transactionid } = req.body;
-    //console.log(password+' '+transactionid+' '+req.user.accountid);
+    
     const final_res = await pool.query(
       "SELECT * FROM finalize_transaction($1, $2)",
       [transactionid, accountid]
