@@ -17,7 +17,7 @@ class SocketService {
       return this.socket;
     }
 
-    const serverURL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:8000';
+    const serverURL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
     
     this.socket = io(serverURL, {
       transports: ['websocket'],

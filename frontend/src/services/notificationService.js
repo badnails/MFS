@@ -2,6 +2,7 @@
 import { toast } from 'react-toastify';
 import socketService from './socketService.js';
 import axios from 'axios';
+import { ChartNoAxesColumnDecreasing } from 'lucide-react';
 
 class NotificationService {
   constructor() {
@@ -46,11 +47,8 @@ class NotificationService {
 
   // Handle incoming notifications
   handleIncomingNotification(data) {
-    console.log('📧 Notification received:', data);
-    
-    // Add to notifications array
     const notification = {
-      id: Date.now(), // Temporary ID until we get from server
+      id: data.id,
       message: data.message,
       type: data.type || 'info',
       data: data.data || {},

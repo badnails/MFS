@@ -21,7 +21,7 @@ class SocketService {
 
   setupEventHandlers() {
     this.io.on('connection', (socket) => {
-      console.log('✅ Socket connected:', socket.id);
+      //console.log('✅ Socket connected:', socket.id);
 
       // Handle user registration
       socket.on('register', (userId) => {
@@ -34,12 +34,12 @@ class SocketService {
       });
 
       // Handle typing events (for chat features)
-      socket.on('typing', (data) => {
-        socket.to(data.room).emit('typing', {
-          userId: data.userId,
-          isTyping: data.isTyping
-        });
-      });
+      // socket.on('typing', (data) => {
+      //   socket.to(data.room).emit('typing', {
+      //     userId: data.userId,
+      //     isTyping: data.isTyping
+      //   });
+      // });
     });
   }
 

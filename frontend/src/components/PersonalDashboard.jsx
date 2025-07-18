@@ -15,7 +15,6 @@ import SendMoney from './personal/SendMoney';
 import CashOut from './personal/CashOut';
 import MerchantPayment from './personal/MerchantPayment';
 import BillPayment from './personal/BillPayment';
-import NotificationTest from './NotificationTest';
 import TransactionHistory from './common/TransactionHistory';
 
 const PersonalDashboard = () => {
@@ -162,13 +161,6 @@ const PersonalDashboard = () => {
             </button>
           ))}
         </div>
-      </div>
-
-      
-
-      {/* Notification Test Component */}
-      <div className="mb-8">
-        <NotificationTest />
       </div>
 
       <div>

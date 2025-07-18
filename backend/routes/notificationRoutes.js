@@ -66,7 +66,6 @@ router.patch('/user/:userId/read-all', async (req, res) => {
     
     res.json({
       success: true,
-      data: result
     });
   } catch (error) {
     console.error('Error marking all notifications as read:', error);

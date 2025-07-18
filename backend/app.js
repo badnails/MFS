@@ -51,6 +51,18 @@ app.use('/agent', agentRoutes);
 app.use('/merchant', merchantRoutes);
 app.use('/notifications', notificationRoutes);
 
+// Global error handler
+app.use((error, req, res, next) => {
+  console.error('❌ Unhandled error:', error);
+  
+  // Send error response
+  res.status(error.status || 500).json({
+    success: false,
+    message: error.message || 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+  });
+});
+
 // 404 fallback
 app.use((req, res) => res.status(404).send('Route not found'));
 
@@ -70,24 +82,11 @@ const initializeServices = async () => {
   }
 };
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('\n🛑 Received SIGINT, shutting down gracefully...');
-  await notificationService.cleanup();
-  process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-  console.log('\n🛑 Received SIGTERM, shutting down gracefully...');
-  await notificationService.cleanup();
-  process.exit(0);
-});
-
 // Start server
 const startServer = async () => {
   await initializeServices();
   
-  server.listen(8000, () => {
+  server.listen(3000, () => {
     console.log('🚀 Server running on http://localhost:3000');
   });
 };

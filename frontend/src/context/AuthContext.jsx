@@ -17,7 +17,7 @@ export const useAuth = () => {
 };
 
 // Configure axios base URL
-axios.defaults.baseURL = "http://localhost:8000";
+axios.defaults.baseURL = "http://localhost:3000";
 axios.defaults.headers.common["ngrok-skip-browser-warning"] = "true";
 
 export const AuthProvider = ({ children }) => {

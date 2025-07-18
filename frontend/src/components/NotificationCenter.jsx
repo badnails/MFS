@@ -1,6 +1,6 @@
 // components/NotificationCenter.jsx
 import React, { useState, useEffect } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import socketService from '../services/socketService.js';
@@ -33,7 +33,7 @@ const NotificationCenter = () => {
 
   const handleNotificationClick = async (notification) => {
     if (!notification.read_at) {
-      await markAsRead(notification.id);
+      await markAsRead(notification.notificationid);
     }
   };
 
@@ -54,12 +54,10 @@ const NotificationCenter = () => {
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case 'success':
-        return '✅';
-      case 'error':
-        return '❌';
-      case 'warning':
-        return '⚠️';
+      case 'DEBIT':
+        return <ArrowUpRight className="w-4 h-4 text-red-600" />;
+      case 'CREDIT':
+        return <ArrowDownLeft className="w-4 h-4 text-green-600" />;
       default:
         return '📧';
     }
@@ -68,12 +66,10 @@ const NotificationCenter = () => {
   const getNotificationBgColor = (type, isRead) => {
     const baseColor = isRead ? 'bg-gray-50' : 'bg-blue-50';
     switch (type) {
-      case 'success':
-        return isRead ? 'bg-green-50' : 'bg-green-100';
-      case 'error':
+      case 'DEBIT':
         return isRead ? 'bg-red-50' : 'bg-red-100';
-      case 'warning':
-        return isRead ? 'bg-yellow-50' : 'bg-yellow-100';
+      case 'CREDIT':
+        return isRead ? 'bg-green-50' : 'bg-green-100';
       default:
         return baseColor;
     }
@@ -141,21 +137,26 @@ const NotificationCenter = () => {
             ) : (
               notifications.map((notification) => (
                 <div
-                  key={notification.id}
+                  key={notification.notificationid}
                   onClick={() => handleNotificationClick(notification)}
                   className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors last:border-b-0 ${getNotificationBgColor(
-                    notification.type,
+                    notification.notification_type,
                     notification.read_at
                   )}`}
                 >
                   <div className="flex items-start space-x-3">
-                    <span className="text-lg flex-shrink-0 mt-0.5">
-                      {getNotificationIcon(notification.type)}
-                    </span>
+                    <div className="text-lg flex-shrink-0 mt-0.5">
+                      {getNotificationIcon(notification.notification_type)}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-900 leading-relaxed">
                         {notification.message}
                       </p>
+                      {notification.transactiontype && (
+                        <p className="text-xs text-gray-600 mt-1 font-medium">
+                          Method: {notification.transactiontype}
+                        </p>
+                      )}
                       <p className="text-xs text-gray-500 mt-1">
                         {formatTime(notification.timestamp || notification.created_at)}
                       </p>

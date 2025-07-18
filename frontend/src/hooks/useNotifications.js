@@ -1,6 +1,7 @@
 // hooks/useNotifications.js
 import { useState, useEffect, useCallback } from 'react';
 import notificationService from '../services/notificationService.js';
+import { ChartNoAxesColumnDecreasing } from 'lucide-react';
 
 export const useNotifications = (userId) => {
   const [notifications, setNotifications] = useState([]);

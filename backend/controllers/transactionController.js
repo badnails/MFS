@@ -232,9 +232,9 @@ export const verifyAccount = async (req, res) => {
 
 import bcrypt from "bcrypt";
 
-export async function get_transaction_details(req, res) {
+export async function get_transaction_details(req, res, trxid) {
   try {
-    const trxID = req.params.id;
+    const trxID = req ? req.params.id : trxid;
 
     if (!trxID) {
       return res.status(400).json({
@@ -267,22 +267,41 @@ export async function get_transaction_details(req, res) {
 
     const trx = rows[0];
 
-    return res.status(200).json({
-      valid: true,
-      transactionDetails: {
-        status: trx.transactionstatus,
-        recipient: trx.username,
-        subamount: trx.subamount,
-        feesamount: trx.feesamount,
-        completed_on: !trx.completiontimestamp ? null : trx.completiontimestamp,
-      },
-    });
+    if (res) {
+      return res.status(200).json({
+        valid: true,
+        transactionDetails: {
+          id: trxID,
+          type: trx.transactiontype,
+          status: trx.transactionstatus,
+          recipient: trx.username,
+          subamount: trx.subamount,
+          feesamount: trx.feesamount,
+          completed_on: trx.completiontimestamp || null,
+        },
+      });
+    } else {
+      return {
+        valid: true,
+        transactionDetails: {
+          id: trxID,
+          type: trx.transactiontype,
+          status: trx.transactionstatus,
+          recipient: trx.username,
+          subamount: trx.subamount,
+          feesamount: trx.feesamount,
+          completed_on: trx.completiontimestamp || null,
+        },
+      };
+    }
   } catch (err) {
     console.error("Error fetching transaction details:", err);
-    return res.status(500).json({
-      valid: false,
-      message: "Internal Server Error",
-    });
+    if (res) {
+      return res.status(500).json({
+        valid: false,
+        message: "Internal Server Error",
+      });
+    }
   }
 }
 
@@ -369,11 +388,9 @@ export async function generate_trx_id(req, res) {
     console.log(result.rows[0]);
     if (result.rows[0].create_trx_id.valid) {
       return res.status(200).json(result.rows[0].create_trx_id);
-    }
-    else
-    {
+    } else {
       console.log(result.rows[0].create_trx_id);
-      throw new Error(result.rows[0].create_trx_id.message)
+      throw new Error(result.rows[0].create_trx_id.message);
     }
   } catch (error) {
     console.error("Error generating transaction ID:", error);
@@ -394,7 +411,7 @@ export async function getTransactionHistory(req, res) {
       type,
       startDate,
       endDate,
-      direction // 'sent', 'received', 'all'
+      direction, // 'sent', 'received', 'all'
     } = req.query;
 
     if (!accountid) {
@@ -410,16 +427,18 @@ export async function getTransactionHistory(req, res) {
     let paramIndex = 1;
 
     // Account filter - either source or destination
-    if (direction === 'sent') {
+    if (direction === "sent") {
       whereConditions.push(`t.sourceaccountid = $${paramIndex}`);
       queryParams.push(accountid);
       paramIndex++;
-    } else if (direction === 'received') {
+    } else if (direction === "received") {
       whereConditions.push(`t.destinationaccountid = $${paramIndex}`);
       queryParams.push(accountid);
       paramIndex++;
     } else {
-      whereConditions.push(`(t.sourceaccountid = $${paramIndex} OR t.destinationaccountid = $${paramIndex})`);
+      whereConditions.push(
+        `(t.sourceaccountid = $${paramIndex} OR t.destinationaccountid = $${paramIndex})`
+      );
       queryParams.push(accountid);
       paramIndex++;
     }
@@ -451,7 +470,10 @@ export async function getTransactionHistory(req, res) {
       paramIndex++;
     }
 
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+    const whereClause =
+      whereConditions.length > 0
+        ? `WHERE ${whereConditions.join(" AND ")}`
+        : "";
 
     // Calculate offset for pagination
     const offset = (page - 1) * limit;
@@ -495,7 +517,7 @@ export async function getTransactionHistory(req, res) {
     const transactionsResult = await pool.query(transactionsQuery, queryParams);
 
     // Format transactions data
-    const transactions = transactionsResult.rows.map(tx => ({
+    const transactions = transactionsResult.rows.map((tx) => ({
       transactionId: tx.transactionid,
       type: tx.transactiontype,
       status: tx.transactionstatus,
@@ -514,7 +536,7 @@ export async function getTransactionHistory(req, res) {
         username: tx.destination_username,
       },
       // Determine direction for current user
-      direction: tx.sourceaccountid === accountid ? 'sent' : 'received'
+      direction: tx.sourceaccountid === accountid ? "sent" : "received",
     }));
 
     return res.status(200).json({
@@ -527,11 +549,10 @@ export async function getTransactionHistory(req, res) {
           totalRecords,
           hasNextPage: page < totalPages,
           hasPreviousPage: page > 1,
-          limit: parseInt(limit)
-        }
-      }
+          limit: parseInt(limit),
+        },
+      },
     });
-
   } catch (error) {
     console.error("Error fetching transaction history:", error);
     return res.status(500).json({
@@ -543,13 +564,14 @@ export async function getTransactionHistory(req, res) {
 
 export async function getTransactionTypes(req, res) {
   try {
-    const result = await pool.query('SELECT transactiontype_name FROM transactiontype ORDER BY transactiontype_name');
-    
+    const result = await pool.query(
+      "SELECT transactiontype_name FROM transactiontype ORDER BY transactiontype_name"
+    );
+
     return res.status(200).json({
       valid: true,
-      types: result.rows.map(row => row.transactiontype_name)
+      types: result.rows.map((row) => row.transactiontype_name),
     });
-
   } catch (error) {
     console.error("Error fetching transaction types:", error);
     return res.status(500).json({
