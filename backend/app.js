@@ -51,18 +51,6 @@ app.use('/agent', agentRoutes);
 app.use('/merchant', merchantRoutes);
 app.use('/notifications', notificationRoutes);
 
-// Global error handler
-app.use((error, req, res, next) => {
-  console.error('❌ Unhandled error:', error);
-  
-  // Send error response
-  res.status(error.status || 500).json({
-    success: false,
-    message: error.message || 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
-  });
-});
-
 // 404 fallback
 app.use((req, res) => res.status(404).send('Route not found'));
 
