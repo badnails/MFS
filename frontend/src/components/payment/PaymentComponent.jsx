@@ -25,7 +25,7 @@ const PaymentComponent = () => {
   };
 
   // Get payment details from navigation state
-  const { recipientId, recipientName, paymentType, description } =
+  const { recipientId, recipientName, paymentType, description, amount:initialAmount, billId } =
     location.state || {};
 
   useEffect(() => {
@@ -36,6 +36,15 @@ const PaymentComponent = () => {
     }
     fetchUserBalance();
   }, [recipientId, paymentType, navigate]);
+  
+  useEffect(() => {
+    if (initialAmount) {
+      setAmount(initialAmount);
+    }
+  }, [initialAmount]);
+
+
+
 
   const fetchUserBalance = async () => {
     try {
@@ -86,9 +95,9 @@ const PaymentComponent = () => {
         description,
       });
 
-      console.log(response.data);
+      //console.log(response.data);
       const transactionId = response.data.transactionid;
-      console.log(transactionId);
+      //console.log(transactionId);
 
       navigate("/payment-pass", {
         state: {
@@ -181,7 +190,7 @@ const PaymentComponent = () => {
               <div className="flex justify-between">
                 <span className="text-gray-600">To:</span>
                 <span className="font-medium text-right">
-                  {recipientName || recipientId}
+                  {recipientName ? recipientName : recipientId}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -211,7 +220,7 @@ const PaymentComponent = () => {
             </div>
           </div>
 
-          {/* Amount Input */}
+          {/* Amount Input
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Payment Amount *
@@ -245,7 +254,43 @@ const PaymentComponent = () => {
                 )}
               </div>
             )}
+          </div> */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Payment Amount *
+            </label>
+            <div className="relative">
+              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                value={amount}
+                onChange={handleAmountChange}
+                readOnly={paymentType === 'bill-payment'} // 🔒 Make it read-only only for bill payments
+                className={`w-full pl-10 pr-4 py-4 border rounded-lg focus:outline-none focus:ring-2 text-lg font-medium ${checkSufficientBalance() || !amount
+                    ? "border-gray-300 focus:ring-blue-500"
+                    : "border-red-300 focus:ring-red-500 bg-red-50"
+                  } ${paymentType === 'bill-payment' ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                placeholder="0.00"
+              />
+            </div>
+
+            {amount && (
+              <div className="mt-2">
+                {checkSufficientBalance() ? (
+                  <p className="text-green-600 text-sm flex items-center">
+                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                    Amount: {formatCurrency(amount)}
+                  </p>
+                ) : (
+                  <p className="text-red-600 text-sm flex items-center">
+                    <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                    Insufficient balance
+                  </p>
+                )}
+              </div>
+            )}
           </div>
+
 
           {/* Error Message */}
           {error && (

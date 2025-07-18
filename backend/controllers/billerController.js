@@ -69,7 +69,7 @@ export const getBillerStatsToday = async (req, res) => {
         COUNT(*) AS "totalBills",
         COUNT(issuedtoaccountid) AS "assignedBills",
         COUNT(*) - COUNT(issuedtoaccountid) AS "unassignedBills",
-        COALESCE(SUM(amount), 0) AS "totalAmount"
+        COALESCE(SUM(b.amount), 0) AS "totalAmount"
       FROM bills b
       JOIN billbatches bb ON b.batchid = bb.batchid
       WHERE bb.accountid = $1
@@ -101,7 +101,8 @@ export const createBillBatch = async (req, res) => {
     description,
     recurrencetype,
     startdate,
-    penalty
+    penalty, 
+    amount
   } = req.body;
 
   const batchid = uuidv4();
@@ -115,8 +116,9 @@ export const createBillBatch = async (req, res) => {
         description,
         recurrencetype,
         startdate,
-        penalty
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        penalty,
+        amount
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `;
 
     await pool.query(query, [
@@ -126,7 +128,8 @@ export const createBillBatch = async (req, res) => {
       description || null,
       recurrencetype,
       startdate,
-      penalty !== '' ? parseInt(penalty) : null
+      penalty !== '' ? parseInt(penalty) : null,
+      amount
     ]);
 
     res.status(201).json({ message: 'Batch created successfully', batchid });
@@ -168,7 +171,7 @@ export const getBatches = async(req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT batchid, batchname FROM billbatches WHERE accountid = $1 AND isactive = true ORDER BY startdate DESC`,
+      `SELECT batchid, batchname, amount FROM billbatches WHERE accountid = $1 AND isactive = true ORDER BY startdate DESC`,
       [accountid]
     );
     //console.log(result);
