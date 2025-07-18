@@ -102,8 +102,8 @@ export const getTodayStats = async (req, res) => {
 };
 
 export const verifyCustomer = async (req, res) => {
-  const agentId = req.user?.accountId;
-  const customerAccountId = req.params.accountId;
+  const agentId = req.user?.accountid;
+  const customerAccountId = req.params.accountid;
 
   if (!agentId) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -149,7 +149,7 @@ export const verifyCustomer = async (req, res) => {
 };
 
 export const processCashIn = async (req, res) => {
-  const agentId = req.user?.accountId;
+  const agentId = req.user?.accountid;
   const { customerAccount, amount, customerPhone } = req.body;
   const cashInAmount = parseFloat(amount);
 

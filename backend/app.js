@@ -8,8 +8,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import http from 'http';
-import { Server } from 'socket.io';
-import pool from './db.js'; // PostgreSQL pool
+
+// Service imports
+import socketService from './services/socketService.js';
+import notificationService from './services/notificationService.js';
 
 // Route imports
 import authRoutes from './routes/authRoutes.js';
@@ -19,18 +21,13 @@ import billerRoutes from './routes/billerRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import agentRoutes from './routes/agentRoutes.js';
 import merchantRoutes from './routes/merchantRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 // Setup
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: '*', // Adjust to your frontend origin
-    methods: ['GET', 'POST'],
-  },
-});
 
 // Express middleware
 app.use(session({
@@ -52,44 +49,39 @@ app.use('/biller', billerRoutes);
 app.use('/admin', adminRoutes);
 app.use('/agent', agentRoutes);
 app.use('/merchant', merchantRoutes);
+app.use('/notifications', notificationRoutes);
+
 
 
 // 404 fallback
 app.use((req, res) => res.status(404).send('Route not found'));
 
-// connect with user
-io.on('connection', (socket) => {
-  console.log('✅ Socket connected:', socket.id);
+// Initialize services
+const initializeServices = async () => {
+  try {
+    // Initialize Socket.IO
+    socketService.initialize(server);
+    console.log('✅ Socket service initialized');
 
-  socket.on('register', (userId) => {
-    console.log(`📡 Socket joined user room: ${userId}`);
-    socket.join(userId); // Join a room named after the user ID
-  });
+    // Initialize notification service
+    await notificationService.initialize();
+    console.log('✅ Notification service initialized');
+  } catch (error) {
+    console.error('❌ Error initializing services:', error);
+    process.exit(1);
+  }
+};
 
-  socket.on('disconnect', () => {
-    console.log('❌ Socket disconnected:', socket.id);
-  });
-});
-
-// PostgreSQL LISTEN for new notifications
-const listenForNotifications = async () => {
-  const client = await pool.connect();
-  await client.query('LISTEN new_notification');
-
-  client.on('notification', (msg) => {
-    const payload = JSON.parse(msg.payload);
-    const { recipient_id } = payload;
-    console.log('DB Notification:', payload);
-
-    // Send notification to the intended user's socket room
-    io.to(recipient_id).emit('notification', payload);
+// Start server
+const startServer = async () => {
+  await initializeServices();
+  
+  server.listen(3000, () => {
+    console.log('🚀 Server running on http://localhost:3000');
   });
 };
 
-listenForNotifications().catch((err) => {
-  console.error('Error setting up DB notification listener:', err);
-});
-
-server.listen(3000, () => {
-  console.log('Server running on http://localhost:3000');
+startServer().catch((error) => {
+  console.error('❌ Failed to start server:', error);
+  process.exit(1);
 });
