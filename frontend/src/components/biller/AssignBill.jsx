@@ -32,10 +32,21 @@ const AssignBill = ({ onClose }) => {
         };
         fetchData();
     }, []);
-
     const handleChange = (e) => {
-        setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+        const { name, value } = e.target;
+
+        if (name === 'batchid') {
+            const selectedBatch = batches.find((b) => b.batchid === value);
+            setForm((prev) => ({
+                ...prev,
+                batchid: value,
+                amount: selectedBatch ? selectedBatch.amount : ''
+            }));
+        } else {
+            setForm((prev) => ({ ...prev, [name]: value }));
+        }
     };
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -145,6 +156,7 @@ const AssignBill = ({ onClose }) => {
                             required
                             value={form.amount}
                             onChange={handleChange}
+                            readOnly
                             className="w-full border rounded px-3 py-2 mt-1"
                         />
                     </div>

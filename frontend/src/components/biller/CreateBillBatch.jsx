@@ -11,6 +11,7 @@ const CreateBillBatch = ({ onClose }) => {
     recurrencetype: 'MONTHLY',
     startdate: '',
     penalty: '',
+    amount: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -94,6 +95,19 @@ const CreateBillBatch = ({ onClose }) => {
               value={form.startdate}
               onChange={handleChange}
               className="w-full border rounded px-3 py-2 mt-1"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Amount (BDT)</label>
+            <input
+              type="number"
+              name="amount"
+              required
+              value={form.amount}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2 mt-1"
+              min="0"
             />
           </div>
 
