@@ -1,3 +1,5 @@
+import React from 'react';
+import { useDataReload } from '../hooks/useDataReload';
 import { LogOut, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationCenter from './NotificationCenter';
@@ -5,6 +7,7 @@ import NotificationCenter from './NotificationCenter';
 
 const DashboardLayout = ({ children }) => {
   const { user, logout } = useAuth();
+  const reloadKey = useDataReload();
 
   return (
     <div className="relative min-h-screen bg-gray-50 overflow-hidden">
@@ -38,7 +41,7 @@ const DashboardLayout = ({ children }) => {
 
       {/* Main Content */}
       <main className="relative z-10 max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {children}
+        {React.cloneElement(children, { reloadKey })}
       </main>
     </div>
   );

@@ -17,7 +17,7 @@ import MerchantPayment from './personal/MerchantPayment';
 import BillPayment from './personal/BillPayment';
 import TransactionHistory from './common/TransactionHistory';
 
-const PersonalDashboard = () => {
+const PersonalDashboard = ({ reloadKey }) => {
   const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +40,7 @@ const PersonalDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [reloadKey]);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {

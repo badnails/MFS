@@ -6,7 +6,7 @@ import TransactionHistory from './TransactionHistory';
 import PendingBills from './PendingBills';
 import axios from 'axios';
 
-const MerchantDashboard = () => {
+const MerchantDashboard = ({ reloadKey }) => {
   const { user, logout } = useAuth();
   const [merchantData, setMerchantData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -38,7 +38,7 @@ const MerchantDashboard = () => {
     };
 
     fetchMerchantData();
-  }, []);
+  }, [reloadKey]);
 
   const handleLogout = () => logout();
   const openModal = (id) => setActiveModal(id);

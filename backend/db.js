@@ -15,7 +15,7 @@ const pool = new Pool({
 });
 
 pool.on('error', (err, req, res)=>{
-  console.error(err);
+  console.log("|DB TERM|");
 })
 
 export default pool;
