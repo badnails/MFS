@@ -13,6 +13,7 @@ import AgentDashboard from './components/agent/AgentDashboard';
 import { ToastContainer } from 'react-toastify';
 import PaymentPassword from './components/payment/PaymentPassword';
 import PaymentOTP from './components/payment/PaymentOTP';
+import BillerDashboard from './components/biller/BillerDashboard';
 
 
 function App() {
@@ -49,6 +50,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AgentDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/biller-dashboard"
+              element={
+                <ProtectedRoute>
+                  <BillerDashboard />
                 </ProtectedRoute>
               }
             />

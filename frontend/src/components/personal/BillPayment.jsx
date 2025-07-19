@@ -1,47 +1,49 @@
-// src/components/personal/BillPayment.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Receipt, Building } from 'lucide-react';
+import { X, Receipt, Building, Loader2 } from 'lucide-react';
 import AccountSearch from '../common/AccountSearch';
+import axios from 'axios';
 
 const BillPayment = ({ onClose }) => {
   const navigate = useNavigate();
+  const [step, setStep] = useState(1);
   const [selectedBiller, setSelectedBiller] = useState(null);
-  const [accountNumber, setAccountNumber] = useState('');
-  const [billType, setBillType] = useState('electricity');
+  const [bills, setBills] = useState([]);
+  const [loadingBills, setLoadingBills] = useState(false);
+  const [error, setError] = useState('');
 
-  const billTypes = [
-    { value: 'electricity', label: 'Electricity' },
-    { value: 'water', label: 'Water' },
-    { value: 'gas', label: 'Gas' },
-    { value: 'internet', label: 'Internet' },
-    { value: 'mobile', label: 'Mobile' },
-    { value: 'insurance', label: 'Insurance' },
-    { value: 'other', label: 'Other' }
-  ];
-
-  const handleBillerSelect = (biller) => {
+  // Move to step 2 and fetch bills
+  const handleBillerSelect = async (biller) => {
     setSelectedBiller(biller);
+    setLoadingBills(true);
+    setError('');
+    try {
+      const res = await axios.get(`/user/assigned/${biller.accountid}`); // You must have this route on backend
+      setBills(res.data);
+      setStep(2);
+    } catch (err) {
+      setError('Failed to fetch bills for this biller.');
+    } finally {
+      setLoadingBills(false);
+    }
   };
 
-  const handleContinue = () => {
-    if (!selectedBiller || !accountNumber) {
-      return;
-    }
-
+  const handleBillSelect = (bill) => {
     navigate('/payment', {
       state: {
         recipientId: selectedBiller.accountid,
         recipientName: selectedBiller.accountname,
         paymentType: 'bill-payment',
-        description: `${billType.charAt(0).toUpperCase() + billType.slice(1)} bill - Account: ${accountNumber}`
+        description: `Pay bill ${bill.billname || bill.billid}`,
+        amount: bill.amount,
+        billId: bill.billid
       }
     });
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto transition-all duration-300 ease-in-out">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
@@ -58,64 +60,68 @@ const BillPayment = ({ onClose }) => {
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Bill Type *
-            </label>
-            <select
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              value={billType}
-              onChange={(e) => setBillType(e.target.value)}
-            >
-              {billTypes.map(type => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
+        {/* Step 1: Select Biller */}
+        {step === 1 && (
+          <div className="p-6 space-y-6 animate-fade-in">
+            <p className="text-sm text-gray-600">Search and select a biller to continue</p>
+            <AccountSearch
+              accountType="BILLER"
+              onSelectAccount={handleBillerSelect}
+              placeholder="Search for billers..."
+            />
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {loadingBills && (
+              <div className="flex items-center justify-center pt-4">
+                <Loader2 className="animate-spin h-5 w-5 text-orange-600" />
+              </div>
+            )}
           </div>
+        )}
 
-          <AccountSearch
-            accountType="BILLER"
-            onSelectAccount={handleBillerSelect}
-            placeholder="Search for billers..."
-          />
+        {/* Step 2: Show bills */}
+        {step === 2 && (
+          <div className="p-6 space-y-4 animate-fade-in">
+            <h3 className="text-sm font-medium text-gray-700">
+              Bills assigned to you by <span className="font-semibold">{selectedBiller.accountname}</span>
+            </h3>
+            {bills.length === 0 ? (
+              <p className="text-gray-500 text-sm">No pending bills.</p>
+            ) : (
+              <ul className="divide-y divide-gray-200">
+                {bills.map((bill) => (
+                  <li
+                    key={bill.billid}
+                    onClick={() => handleBillSelect(bill)}
+                    className="p-4 hover:bg-gray-50 rounded-lg cursor-pointer transition"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{bill.billname || `Bill #${bill.billid}`}</p>
+                        <p className="text-sm text-gray-500">Amount: {bill.amount} BDT</p>
+                      </div>
+                      <p className="text-sm text-gray-400">{new Date(bill.duedate).toLocaleDateString()}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Your Account Number *
-            </label>
-            <div className="relative">
-              <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                required
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                placeholder="Your account number with the biller"
-                value={accountNumber}
-                onChange={(e) => setAccountNumber(e.target.value)}
-              />
+            <div className="flex space-x-3 pt-4">
+              <button
+                onClick={() => setStep(1)}
+                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Back
+              </button>
+              <button
+                onClick={onClose}
+                className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
             </div>
           </div>
-
-          <div className="flex space-x-3">
-            <button
-              onClick={onClose}
-              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleContinue}
-              disabled={!selectedBiller || !accountNumber}
-              className="flex-1 px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Continue
-            </button>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
