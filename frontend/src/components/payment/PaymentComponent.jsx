@@ -124,6 +124,8 @@ const PaymentComponent = () => {
         return "Send Money";
       case "cash-out":
         return "Cash Out";
+      case "cash-in":
+        return "Cash In";
       case "merchant-payment":
         return "Merchant Payment";
       case "bill-payment":
@@ -139,6 +141,8 @@ const PaymentComponent = () => {
         return "from-blue-500 to-blue-600";
       case "cash-out":
         return "from-green-500 to-green-600";
+      case "cash-in":
+        return "from-emerald-500 to-emerald-600";
       case "merchant-payment":
         return "from-purple-500 to-purple-600";
       case "bill-payment":
@@ -358,6 +362,16 @@ const PaymentComponent = () => {
               Cancel Payment
             </button>
           </div>
+
+          {/* Cash-in specific note */}
+          {paymentType === 'cash-in' && (
+            <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+              <p className="text-orange-800 text-sm">
+                <strong>Agent Reminder:</strong> Collect cash from customer before completing this transaction. 
+                The customer's account will be credited with the entered amount.
+              </p>
+            </div>
+          )}
 
           {/* Security Notice */}
           <div className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">

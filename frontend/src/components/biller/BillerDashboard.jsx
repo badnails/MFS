@@ -6,7 +6,7 @@ import AssignBill from './AssignBill';
 import TransactionHistory from '../common/TransactionHistory';
 import axios from 'axios';
 
-const BillerDashboard = () => {
+const BillerDashboard = ({ reloadKey }) => {
   const { user, logout } = useAuth();
   const [billerData, setBillerData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -38,7 +38,7 @@ const BillerDashboard = () => {
     };
 
     fetchBillerData();
-  }, []);
+  }, [reloadKey]);
 
   const handleLogout = () => logout();
   const openModal = (id) => setActiveModal(id);

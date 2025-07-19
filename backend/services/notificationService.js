@@ -72,7 +72,7 @@ class NotificationService {
     if (recipient_id) {
       socketService.sendToUser(recipient_id, "notification", {
         message,
-        type: "success",
+        type,
         data: data || {},
         timestamp: new Date().toISOString(),
       });

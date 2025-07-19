@@ -2,6 +2,7 @@
 import { toast } from 'react-toastify';
 import socketService from './socketService.js';
 import axios from 'axios';
+import { triggerReload } from '../hooks/useDataReload';
 import { ChartNoAxesColumnDecreasing } from 'lucide-react';
 
 class NotificationService {
@@ -64,6 +65,11 @@ class NotificationService {
 
     // Notify all listeners
     this.notifyListeners();
+
+    // Trigger data reload
+    if (notification.type !== 'error') {
+      triggerReload();
+    }
   }
 
   // Show toast notification
@@ -78,7 +84,10 @@ class NotificationService {
     };
 
     switch (notification.type) {
-      case 'success':
+      case 'CREDIT':
+        toast.success(notification.message, toastOptions);
+        break;
+      case 'DEBIT':
         toast.success(notification.message, toastOptions);
         break;
       case 'error':

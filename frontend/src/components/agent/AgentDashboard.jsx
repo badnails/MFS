@@ -6,7 +6,7 @@ import CashOut from './CashOut';
 import TransactionHistory from '../common/TransactionHistory';
 import axios from 'axios';
 
-const AgentDashboard = () => {
+const AgentDashboard = ({ reloadKey }) => {
   const { user, logout } = useAuth();
   const [agentData, setAgentData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +40,7 @@ const AgentDashboard = () => {
     };
 
     fetchAgentData();
-  }, []);
+  }, [reloadKey]);
 
   const formatCurrency = (amount) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);

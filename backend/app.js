@@ -52,7 +52,6 @@ app.use('/merchant', merchantRoutes);
 app.use('/notifications', notificationRoutes);
 
 
-
 // 404 fallback
 app.use((req, res) => res.status(404).send('Route not found'));
 

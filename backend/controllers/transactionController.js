@@ -105,7 +105,7 @@ export const verifyAccount = async (req, res) => {
       success: true,
       account: {
         accountId: account.accountid,
-        accountName: account.accountname,
+        accountName: account.username,
         accountType: account.accounttype,
       },
     });
