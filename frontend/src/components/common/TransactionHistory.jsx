@@ -372,7 +372,7 @@ const TransactionHistory = ({ accountId, onClose = null, isModal = false }) => {
                           {transaction.direction === 'sent' ? '-' : '+'}
                           {formatCurrency(transaction.amount)}
                         </div>
-                        {transaction.fees > 0 && (
+                        {transaction.fees > 0 && transaction.direction === 'sent' && (
                           <div className="text-sm text-gray-500">
                             Fee: {formatCurrency(transaction.fees)}
                           </div>

@@ -9,7 +9,8 @@ import {
   get_transaction_details,
   finalizeTransaction,
   getTransactionHistory,
-  getTransactionTypes
+  getTransactionTypes,
+  fee_calculator
 } from '../controllers/transactionController.js';
 import { authenticateJWT } from '../controllers/authController.js';
 
@@ -28,5 +29,7 @@ router.post('/finalize-transaction', finalizeTransaction);
 // NEW: Transaction history routes
 router.get('/history/:accountid', authenticateJWT, getTransactionHistory);
 router.get('/types', authenticateJWT, getTransactionTypes);
+
+router.get('/fees/:type/:amount', fee_calculator);
 
 export default router;

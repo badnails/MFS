@@ -154,7 +154,7 @@ const NotificationCenter = () => {
                       </p>
                       {notification.transactiontype && (
                         <p className="text-xs text-gray-600 mt-1 font-medium">
-                          Method: {notification.transactiontype}
+                          Method: {notification.transactiontype} 
                         </p>
                       )}
                       <p className="text-xs text-gray-500 mt-1">

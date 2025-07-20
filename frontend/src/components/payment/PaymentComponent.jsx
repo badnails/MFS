@@ -1,7 +1,7 @@
 // src/components/payment/PaymentComponent.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { X, DollarSign, CreditCard, AlertCircle, Loader2 } from "lucide-react";
+import { X, DollarSign, CreditCard, AlertCircle, Loader2, ChartNoAxesColumnDecreasing } from "lucide-react";
 //import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
 
@@ -11,10 +11,14 @@ const PaymentComponent = () => {
   //const { user } = useAuth();
 
   const [amount, setAmount] = useState("");
+  // const [totalamount, setTotalamount] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [userBalance, setUserBalance] = useState(0);
   const [balanceLoading, setBalanceLoading] = useState(true);
+  const [fee, setFee] = useState(0);
+  const [feeLoading, setFeeLoading] = useState(false);
+  // Fetch fee whenever amount or paymentType changes
 
   const paymentTypeMap = {
     "send-money": "SEND_MONEY",
@@ -43,8 +47,27 @@ const PaymentComponent = () => {
     }
   }, [initialAmount]);
 
-
-
+  useEffect(() => {
+    const fetchFee = async () => {
+      if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0 || !paymentType) {
+        setFee(0);
+        return;
+      }
+      setFeeLoading(true);
+      try {
+        const type = paymentTypeMap[paymentType] || paymentType;
+        const response = await axios.get(`/transaction/fees/${type}/${amount}`);
+        console.log(response);
+        setFee(parseFloat(response.data.feeamount));
+      } catch (err) {
+        setFee(0);
+        console.error(err);
+      } finally {
+        setFeeLoading(false);
+      }
+    };
+    fetchFee();
+  }, [amount, paymentType]);
 
   const fetchUserBalance = async () => {
     try {
@@ -68,14 +91,19 @@ const PaymentComponent = () => {
   };
 
   const checkSufficientBalance = () => {
-    const paymentAmount = parseFloat(amount);
+    const amt = parseFloat(amount);
+    const f = parseFloat(fee);
+    const paymentAmount = (isNaN(amt) ? 0 : amt) + (isNaN(f) ? 0 : f);
     return paymentAmount > 0 && paymentAmount <= userBalance;
   };
 
   const handlePayment = async () => {
-    const paymentAmount = parseFloat(amount);
+    const amt = parseFloat(amount);
+    const f = parseFloat(fee);
+    const subamount = isNaN(amt) ? 0 : amt;
+    const feeamount = isNaN(f) ? 0 : f;
 
-    if (!paymentAmount || paymentAmount <= 0) {
+    if (!subamount || subamount <= 0) {
       setError("Please enter a valid amount");
       return;
     }
@@ -90,9 +118,9 @@ const PaymentComponent = () => {
       // Use new initiate endpoint
       const response = await axios.post("/transaction/initiate", {
         recipientId,
-        amount: paymentAmount,
+        subamount,
         type: paymentTypeMap[paymentType],
-        description,
+        feeamount
       });
 
       //console.log(response.data);
@@ -101,8 +129,8 @@ const PaymentComponent = () => {
 
       navigate("/payment-pass", {
         state: {
-          transactionId,
-        },
+          transactionId
+        }
       });
     } catch (err) {
       setError(err.response?.data?.message || "Failed to initiate payment");
@@ -321,9 +349,21 @@ const PaymentComponent = () => {
                   </span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-green-700">Fee:</span>
+                  <span className="font-medium text-green-900">
+                    {feeLoading ? 'Calculating...' : formatCurrency(fee)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-green-700">Total:</span>
+                  <span className="font-medium text-green-900">
+                    {feeLoading ? 'Calculating...' : formatCurrency((isNaN(parseFloat(amount)) ? 0 : parseFloat(amount)) + (isNaN(parseFloat(fee)) ? 0 : parseFloat(fee)))}
+                  </span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-green-700">Remaining Balance:</span>
                   <span className="font-medium text-green-900">
-                    {formatCurrency(userBalance - parseFloat(amount))}
+                    {formatCurrency(userBalance - ((isNaN(parseFloat(amount)) ? 0 : parseFloat(amount)) + (isNaN(parseFloat(fee)) ? 0 : parseFloat(fee))))}
                   </span>
                 </div>
               </div>
@@ -349,7 +389,7 @@ const PaymentComponent = () => {
               ) : (
                 <>
                   <CreditCard className="h-5 w-5 mr-2" />
-                  Pay {amount && formatCurrency(amount)}
+                  Pay {amount && formatCurrency((isNaN(parseFloat(amount)) ? 0 : parseFloat(amount)) + (isNaN(parseFloat(fee)) ? 0 : parseFloat(fee)))}
                 </>
               )}
             </button>

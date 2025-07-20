@@ -61,7 +61,7 @@ class NotificationService {
         data.transactionid
       );
       const trx_data = response.transactionDetails;
-      const amount = parseFloat(trx_data.subamount + trx_data.feesamount);
+      const amount = parseFloat(trx_data.subamount);
       message = `You have ${
         type === "CREDIT" ? "received" : "sent"
       } BDT ${amount}${type === "CREDIT" ? " from " : " to "}${
@@ -154,12 +154,13 @@ class NotificationService {
         if (row.notification_type === "DEBIT" || row.notification_type === "CREDIT") {
           const response = await get_transaction_details(null,null,row.notification_data.transactionid);
           const trx_data = response.transactionDetails;
-          const amount = parseFloat(trx_data.subamount + trx_data.feesamount);
+          const amount = parseFloat(trx_data.subamount);
           const type = row.notification_type;
           return {
             ...row,
             message: `You have ${type === "CREDIT" ? "received" : "sent"} BDT ${amount}${type === "CREDIT" ? ` from ${trx_data.sender}` : ` to ${trx_data.recipient}`}`,
-            transactiontype: trx_data.type
+            transactiontype: trx_data.type,
+            fee: parseFloat(trx_data.feesamount)
           };
         }
         return row;

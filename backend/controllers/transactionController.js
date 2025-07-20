@@ -115,6 +115,40 @@ export const verifyAccount = async (req, res) => {
   }
 };
 
+export const fee_calculator = async (req, res) => {
+  try{
+    const transactiontype = req.params.type;
+    const amount = req.params.amount;
+    if(!transactiontype || !amount)
+    {
+      return res.status(400).json({
+        valid: false,
+        message: "Invalid type or amount"
+      })
+    }
+  
+    const response = await pool.query(`SELECT LEAST(max_fee, GREATEST((fee_rate/100)*$2, min_fee)) 
+                                      FROM fee_structures 
+                                      WHERE transactiontype= $1
+                                            AND applicable_from<= $2
+                                            AND is_active = true 
+                                      ORDER BY applicable_from DESC 
+                                      LIMIT 1`, [transactiontype, amount]);
+    const feeamount = response.rows[0]?.least || "0";
+    return res.status(200).json({
+      valid: true,
+      feeamount
+    });
+  }catch(err)
+  {
+    console.error(err);
+    return res.status(500).json({
+      valid: false,
+      message: "ISO"
+    })
+  }
+}
+
 // // NEW: Initiate payment endpoint
 // export const initiatePayment = async (req, res) => {
 //   const { recipientId, amount, paymentType, description } = req.body;
@@ -361,8 +395,8 @@ export async function finalizeTransaction(req, res) {
 
 export async function generate_trx_id(req, res) {
   try {
-    const { recipientId, amount, type } = req.body;
-    if (!amount)
+    const { recipientId, subamount, type, feeamount } = req.body;
+    if (!subamount)
       return res.status(400).json({
         valid: false,
         message: "Invalid amount",
@@ -381,8 +415,8 @@ export async function generate_trx_id(req, res) {
       });
     }
 
-    const query = `SELECT create_trx_id($1, $2, $3)`;
-    const result = await pool.query(query, [recipientId, type, amount]);
+    const query = `SELECT create_trx_id($1, $2, $3, $4)`;
+    const result = await pool.query(query, [recipientId, type, subamount, feeamount]);
     console.log(result.rows[0]);
     if (result.rows[0].create_trx_id.valid) {
       return res.status(200).json(result.rows[0].create_trx_id);
