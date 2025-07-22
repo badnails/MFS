@@ -256,3 +256,86 @@ export const userBlockCheck = async (req, res) => {
 
   return res.status(404).json({ valid: true, message: "Please try again after a some time" });
 };
+
+export const addUserInformation = async (req, res) => {
+  const { isIndividual, formData, accountid } = req.body; 
+
+
+  try {
+    if (isIndividual) {
+      const { firstname, lastname, dateofbirth, gender, nationality } = formData;
+      console.log(formData);
+      console.log(accountid);
+      await pool.query(
+        `INSERT INTO individualinfo (accountid, firstname, lastname, dateofbirth, gender, nationality)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [accountid, firstname, lastname, dateofbirth, gender, nationality]
+      );
+    } else {
+      const { merchantname, websiteurl } = formData;
+      await pool.query(
+        `INSERT INTO institutionalinfo (accountid, merchantname, websiteurl)
+         VALUES ($1, $2, $3)`,
+        [accountid, merchantname, websiteurl]
+      );
+    } 
+
+
+    res.status(200).json({ message: 'Information saved successfully' });
+  } catch (err) {
+    console.error('DB insert error:', err);
+    res.status(500).json({ error: 'Failed to save information' });
+  }
+};
+
+export const addUserContactInformation = async (req, res) => {
+  const { formData, accountid } = req.body;
+  const {
+    email,
+    phone,
+    addressline1,
+    addressline2,
+    city,
+    state,
+    country,
+    zipcode,
+  } = formData;
+  
+
+  if (!email || !phone || !accountid) {
+    return res.status(400).json({ error: 'Email, phone number, and account ID are required.' });
+  }
+
+  try {
+    await pool.query(
+      `INSERT INTO contactinfo (
+        accountid, email, phonenumber, addressline1, addressline2, city, state, country, postalcode
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      ON CONFLICT (accountid) DO UPDATE SET
+        email = EXCLUDED.email,
+        phonenumber = EXCLUDED.phonenumber,
+        addressline1 = EXCLUDED.addressline1,
+        addressline2 = EXCLUDED.addressline2,
+        city = EXCLUDED.city,
+        state = EXCLUDED.state,
+        country = EXCLUDED.country,
+        postalcode = EXCLUDED.postalcode`,
+      [
+        accountid,
+        email,
+        phone,
+        addressline1,
+        addressline2,
+        city,
+        state,
+        country,
+        zipcode
+      ]
+    );
+
+    res.json({ message: 'Contact information saved successfully.' });
+  } catch (err) {
+    console.error('Error inserting contact info:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};

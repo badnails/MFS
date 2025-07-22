@@ -14,6 +14,10 @@ import { ToastContainer } from 'react-toastify';
 import PaymentPassword from './components/payment/PaymentPassword';
 import PaymentOTP from './components/payment/PaymentOTP';
 import BillerDashboard from './components/biller/BillerDashboard';
+import PersonalAccountInfo from './components/PersonalAccountInfo';
+import ContactInfo from './components/ContactInfo';
+import Completion from './components/Completion';
+import InstitutionalAccountInfo from './components/InstitutionalAccountInfo';
 
 
 function App() {
@@ -25,6 +29,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/otp" element={<OTPVerification />} />
             <Route path="/signup" element={<Signup />} />
+           
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
@@ -63,6 +68,11 @@ function App() {
             />
             <Route path="/payment-completion" element={<PaymentCompletion />} />
             <Route path="/" element={<Navigate to="/login" />} />
+            <Route path="/contact-info" element={<ContactInfo />} />
+            <Route path="/completion" element={<Completion />} />
+            <Route path="/personal-account-details" element={<PersonalAccountInfo />} />
+            <Route path="/institutional-account-details" element={<InstitutionalAccountInfo />} />
+
           </Routes>
         </div>
       <ToastContainer />
