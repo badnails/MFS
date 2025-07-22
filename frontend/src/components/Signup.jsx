@@ -161,7 +161,7 @@ const Signup = () => {
   const handleContinue = () => {
       //navigate('/login');
       if(formData.accounttype === 'PERSONAL' || formData.accounttype === 'AGENT') navigate('/personal-account-details', { state: { accountType: formData.accounttype, accountid: user.accountId } });
-      else if(formData.accounttype === 'MERCHANT' || formData.accounttype === 'BILLER') navigate('/institutional-account-details', {state : {accountTypes: formData.accounttype, accountid: user.accountId}});
+      else if(formData.accounttype === 'MERCHANT' || formData.accounttype === 'BILLER') navigate('/institutional-account-details', {state : {accountType: formData.accounttype, accountid: user.accountId}});
       else navigate('/login');
   };  
 

@@ -272,11 +272,11 @@ export const addUserInformation = async (req, res) => {
         [accountid, firstname, lastname, dateofbirth, gender, nationality]
       );
     } else {
-      const { merchantname, websiteurl } = formData;
+      const { merchantname, websiteurl, category_id } = formData;
       await pool.query(
-        `INSERT INTO institutionalinfo (accountid, merchantname, websiteurl)
-         VALUES ($1, $2, $3)`,
-        [accountid, merchantname, websiteurl]
+        `INSERT INTO institutionalinfo (accountid, merchantname, websiteurl, category_id)
+         VALUES ($1, $2, $3, $4)`,
+        [accountid, merchantname, websiteurl, category_id]
       );
     } 
 
