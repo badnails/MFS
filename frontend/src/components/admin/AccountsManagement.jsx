@@ -39,7 +39,7 @@ const AccountsManagement = () => {
     if (searchTerm) {
       filtered = filtered.filter(account =>
         account.accountid.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        account.accountname.toLowerCase().includes(searchTerm.toLowerCase())
+        account.username.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -167,7 +167,7 @@ const AccountsManagement = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">
-                        {account.accountname}
+                        {account.username}
                       </div>
                       <div className="text-sm text-gray-500">
                         {account.accountid}

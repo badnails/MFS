@@ -67,8 +67,8 @@ export const getBillerStatsToday = async (req, res) => {
     const statsQuery = `
       SELECT
         COUNT(*) AS "totalBills",
-        COUNT(issuedtoaccountid) AS "assignedBills",
-        COUNT(*) - COUNT(issuedtoaccountid) AS "unassignedBills",
+        COUNT(*) AS "assignedBills",
+        COUNT(*) - COUNT(*) AS "unassignedBills",
         COALESCE(SUM(b.amount), 0) AS "totalAmount"
       FROM bills b
       JOIN billbatches bb ON b.batchid = bb.batchid
