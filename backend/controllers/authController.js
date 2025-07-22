@@ -339,3 +339,72 @@ export const addUserContactInformation = async (req, res) => {
     res.status(500).json({ error: 'Internal server error.' });
   }
 };
+
+// Add this function to your authController.js
+export const completeAccountSetup = async (req, res) => {
+  const { accountid, accountType, isIndividual, personalData, institutionalData, contactData } = req.body;
+  
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+
+    // Insert personal or institutional data
+    if (isIndividual && personalData) {
+      const { firstname, lastname, dateofbirth, gender, nationality } = personalData;
+      
+      await client.query(
+        `INSERT INTO individualinfo (accountid, firstname, lastname, dateofbirth, gender, nationality)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (accountid) DO UPDATE SET
+         firstname = EXCLUDED.firstname,
+         lastname = EXCLUDED.lastname,
+         dateofbirth = EXCLUDED.dateofbirth,
+         gender = EXCLUDED.gender,
+         nationality = EXCLUDED.nationality`,
+        [accountid, firstname, lastname, dateofbirth, gender, nationality]
+      );
+    } else if (!isIndividual && institutionalData) {
+      const { merchantname, websiteurl, category_id } = institutionalData;
+      
+      await client.query(
+        `INSERT INTO institutionalinfo (accountid, merchantname, websiteurl, category_id)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (accountid) DO UPDATE SET
+         merchantname = EXCLUDED.merchantname,
+         websiteurl = EXCLUDED.websiteurl,
+         category_id = EXCLUDED.category_id`,
+        [accountid, merchantname, websiteurl, category_id]
+      );
+    }
+
+    // Insert contact data
+    const { email, phone, addressline1, addressline2, city, state, country, zipcode } = contactData;
+    
+    await client.query(
+      `INSERT INTO contactinfo (
+        accountid, email, phonenumber, addressline1, addressline2, city, state, country, postalcode
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ON CONFLICT (accountid) DO UPDATE SET
+      email = EXCLUDED.email,
+      phonenumber = EXCLUDED.phonenumber,
+      addressline1 = EXCLUDED.addressline1,
+      addressline2 = EXCLUDED.addressline2,
+      city = EXCLUDED.city,
+      state = EXCLUDED.state,
+      country = EXCLUDED.country,
+      postalcode = EXCLUDED.postalcode`,
+      [accountid, email, phone, addressline1, addressline2, city, state, country, zipcode]
+    );
+
+    await client.query('COMMIT');
+    
+    res.status(200).json({ message: 'Account setup completed successfully' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Account setup error:', err);
+    res.status(500).json({ error: 'Failed to complete account setup' });
+  } finally {
+    client.release();
+  }
+};

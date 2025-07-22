@@ -18,6 +18,11 @@ import PersonalAccountInfo from './components/PersonalAccountInfo';
 import ContactInfo from './components/ContactInfo';
 import Completion from './components/Completion';
 import InstitutionalAccountInfo from './components/InstitutionalAccountInfo';
+// In your main router file
+import AccountSetupContainer from './components/AccountSetupContainer';
+
+// Replace your current routing with:
+
 
 
 function App() {
@@ -68,10 +73,10 @@ function App() {
             />
             <Route path="/payment-completion" element={<PaymentCompletion />} />
             <Route path="/" element={<Navigate to="/login" />} />
-            <Route path="/contact-info" element={<ContactInfo />} />
+            
+            <Route path="/account-setup" element={<AccountSetupContainer />} />
             <Route path="/completion" element={<Completion />} />
-            <Route path="/personal-account-details" element={<PersonalAccountInfo />} />
-            <Route path="/institutional-account-details" element={<InstitutionalAccountInfo />} />
+            
 
           </Routes>
         </div>

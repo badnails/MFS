@@ -1,22 +1,27 @@
 // src/components/InstitutionalAccountInfo.jsx
-import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { Building2, Globe } from 'lucide-react';
-import axios from 'axios';
 
-const InstitutionalAccountInfo = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { accountType, accountid } = location.state || {};
-
+const InstitutionalAccountInfo = ({ 
+  accountType, 
+  onSubmit, 
+  onBack, 
+  loading, 
+  existingData 
+}) => {
   const [formData, setFormData] = useState({
     merchantname: '',
     websiteurl: '',
-    category_id: 1 // Fixed to 1 as requested
+    category_id: 1
   });
-
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+
+  // Pre-populate form with existing data
+  useEffect(() => {
+    if (existingData) {
+      setFormData(existingData);
+    }
+  }, [existingData]);
 
   const handleChange = (e) => {
     setFormData({
@@ -26,42 +31,17 @@ const InstitutionalAccountInfo = () => {
     setError('');
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
 
-    try {
-      if (!formData.merchantname.trim()) {
-        setError('Please enter merchant name.');
-        setLoading(false);
-        return;
-      }
-
-      const response = await axios.post('/auth/institutionalinfo', {
-        isIndividual : false,
-        formData,
-        accountid
-      });
-
-      if (response.status === 200) {
-        console.log('Institutional info submitted successfully:', response.data);
-        navigate('/contact-info', { 
-          state: { 
-            accountid,
-            accountType,
-            previousStep: 'institutional-info'
-          } 
-        });
-      } else {
-        setError('Something went wrong. Please try again.');
-      }
-    } catch (err) {
-      console.error('Submission error:', err);
-      setError(err.response?.data?.error || 'Submission failed. Please try again.');
-    } finally {
-      setLoading(false);
+    if (!formData.merchantname.trim()) {
+      setError('Please enter merchant name.');
+      return;
     }
+
+    // Pass data to parent
+    onSubmit(formData);
   };
 
   return (
@@ -76,7 +56,7 @@ const InstitutionalAccountInfo = () => {
               {accountType === 'MERCHANT' ? 'Merchant' : 'Biller'} Information
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              Please provide your business details to complete your {accountType} account setup
+              Please provide your business details to complete your {accountType?.toLowerCase()} account setup
             </p>
           </div>
 
@@ -122,7 +102,7 @@ const InstitutionalAccountInfo = () => {
             <div className="flex justify-between pt-6">
               <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={onBack}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Back
@@ -133,17 +113,7 @@ const InstitutionalAccountInfo = () => {
                 disabled={loading}
                 className="inline-flex items-center px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Processing...
-                  </>
-                ) : (
-                  'Continue to Contact Info'
-                )}
+                Continue to Contact Info
               </button>
             </div>
           </form>
