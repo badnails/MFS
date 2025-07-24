@@ -64,9 +64,7 @@ class NotificationService {
       const amount = parseFloat(trx_data.subamount);
       message = `You have ${
         type === "CREDIT" ? "received" : "sent"
-      } BDT ${amount}${type === "CREDIT" ? " from " : " to "}${
-        trx_data.recipient
-      }`;
+      } BDT ${amount}${type === "CREDIT" ? ` from  ${trx_data.sender}`: ` to ${trx_data.recipient}`}`;
     }
 
     if (recipient_id) {

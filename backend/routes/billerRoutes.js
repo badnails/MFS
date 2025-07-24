@@ -1,5 +1,5 @@
 import express from 'express';
-import { assignBills, createBillBatch,  getBatches,  getBillerDashboard, getBillerStatsToday } from '../controllers/billerController.js';
+import { assignBills, createBillBatch, getBatches, getBillerDashboard, getBillerStatsToday, checkBatchNameAvailability, getBillFields, createBills } from '../controllers/billerController.js';
 import { authenticateJWT } from '../controllers/authController.js';
 
 const router = express.Router();
@@ -14,6 +14,9 @@ router.get('/stats/today', authenticateJWT, getBillerStatsToday);
 router.post('/createbatch', authenticateJWT, createBillBatch);
 router.post('/assignbills', authenticateJWT, assignBills);
 router.get('/batches', authenticateJWT, getBatches);
+router.get('/check-batch-name/:batchname', authenticateJWT, checkBatchNameAvailability);
+router.get('/bill-fields/:batchid', authenticateJWT, getBillFields);
+router.post('/create-bills/:batchid', authenticateJWT, createBills);
 
 
 export default router;
