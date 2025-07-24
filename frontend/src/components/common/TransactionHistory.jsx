@@ -15,6 +15,7 @@ import {
   RefreshCw,
   X
 } from 'lucide-react';
+import TransactionDetails from './TransactionDetails';
 
 const TransactionHistory = ({ accountId, onClose = null, isModal = false }) => {
   const [transactions, setTransactions] = useState([]);
@@ -39,6 +40,8 @@ const TransactionHistory = ({ accountId, onClose = null, isModal = false }) => {
 
   // UI state
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedTransactionId, setSelectedTransactionId] = useState(null);
+  const [showTransactionDetails, setShowTransactionDetails] = useState(false);
 
   // Fetch transaction types on component mount
   useEffect(() => {
@@ -159,6 +162,16 @@ const TransactionHistory = ({ accountId, onClose = null, isModal = false }) => {
     } else {
       return { icon: ArrowDownLeft, color: 'text-green-600', label: 'Received' };
     }
+  };
+
+  const handleTransactionClick = (transactionId) => {
+    setSelectedTransactionId(transactionId);
+    setShowTransactionDetails(true);
+  };
+
+  const closeTransactionDetails = () => {
+    setShowTransactionDetails(false);
+    setSelectedTransactionId(null);
   };
 
   const containerClass = isModal 
@@ -323,7 +336,7 @@ const TransactionHistory = ({ accountId, onClose = null, isModal = false }) => {
               <p className="text-gray-500">No transactions found</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-200">
+            <div className="">
               {transactions.map((transaction) => {
                 const statusDisplay = getStatusDisplay(transaction.status);
                 const directionDisplay = getDirectionDisplay(transaction.direction);
@@ -331,7 +344,11 @@ const TransactionHistory = ({ accountId, onClose = null, isModal = false }) => {
                 const DirectionIcon = directionDisplay.icon;
 
                 return (
-                  <div key={transaction.transactionId} className="px-6 py-4 hover:bg-gray-50">
+                  <div 
+                    key={transaction.transactionId} 
+                    className="px-6 py-4 hover:bg-blue-50 cursor-pointer transition-colors border-l-4 border-transparent hover:border-blue-400"
+                    onClick={() => handleTransactionClick(transaction.transactionId)}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
                         {/* Direction Icon */}
@@ -463,6 +480,13 @@ const TransactionHistory = ({ accountId, onClose = null, isModal = false }) => {
           </div>
         )}
       </div>
+
+      {/* Transaction Details Modal */}
+      <TransactionDetails
+        transactionId={selectedTransactionId}
+        isOpen={showTransactionDetails}
+        onClose={closeTransactionDetails}
+      />
     </div>
   );
 };
