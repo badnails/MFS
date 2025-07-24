@@ -1,6 +1,8 @@
 // src/components/ContactInfo.jsx
-import React, { useState, useEffect } from 'react';
-import { Phone, Mail, MapPin, Home, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Phone, Mail, MapPin, Home, ChevronDown, Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { debounce } from 'lodash';
+import axios from 'axios';
 
 const ContactInfo = ({ 
   accountType, 
@@ -21,6 +23,74 @@ const ContactInfo = ({
     country: ''
   });
   const [error, setError] = useState('');
+  const [emailStatus, setEmailStatus] = useState('idle'); // idle, loading, available, unavailable
+  const [phoneStatus, setPhoneStatus] = useState('idle'); // idle, loading, available, unavailable
+  const [emailError, setEmailError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+
+  const checkEmail = useCallback(
+    debounce(async (email) => {
+      if (!email || email.length < 3) {
+        setEmailStatus('idle');
+        return;
+      }
+      setEmailStatus('loading');
+      try {
+        const res = await axios.get(`/auth/check-email/${encodeURIComponent(email)}`);
+        if (res.data.valid) {
+          setEmailStatus('available');
+          setEmailError('');
+        } else {
+          setEmailStatus('unavailable');
+          setEmailError('Email already registered');
+        }
+      } catch (err) {
+        setEmailStatus('unavailable');
+        setEmailError(err.response?.data?.message || 'Email is already taken');
+      }
+    }, 500),
+    []
+  );
+
+  const checkPhone = useCallback(
+    debounce(async (phone) => {
+      if (!phone || phone.length < 3) {
+        setPhoneStatus('idle');
+        return;
+      }
+      setPhoneStatus('loading');
+      try {
+        const res = await axios.get(`/auth/check-phone/${encodeURIComponent(phone)}`);
+        if (res.data.valid) {
+          setPhoneStatus('available');
+          setPhoneError('');
+        } else {
+          setPhoneStatus('unavailable');
+          setPhoneError('Phone number already registered');
+        }
+      } catch (err) {
+        setPhoneStatus('unavailable');
+        setPhoneError(err.response?.data?.message || 'Phone number is already taken');
+      }
+    }, 500),
+    []
+  );
+
+  useEffect(() => {
+    if (formData.email) {
+      checkEmail(formData.email);
+    } else {
+      setEmailStatus('idle');
+    }
+  }, [formData.email, checkEmail]);
+
+  useEffect(() => {
+    if (formData.phone) {
+      checkPhone(formData.phone);
+    } else {
+      setPhoneStatus('idle');
+    }
+  }, [formData.phone, checkPhone]);
 
   // Pre-populate form with existing data
   useEffect(() => {
@@ -35,6 +105,14 @@ const ContactInfo = ({
       [e.target.name]: e.target.value
     });
     setError('');
+    
+    // Reset validation status when field changes
+    if (e.target.name === 'email') {
+      setEmailStatus('loading');
+    }
+    if (e.target.name === 'phone') {
+      setPhoneStatus('loading');
+    }
   };
 
   const validateEmail = (email) => {
@@ -65,6 +143,17 @@ const ContactInfo = ({
 
     if (!validatePhone(formData.phone)) {
       setError('Please enter a valid phone number.');
+      return;
+    }
+
+    // Check if email and phone are available
+    if (emailStatus !== 'available') {
+      setError('Please use a valid and available email address.');
+      return;
+    }
+
+    if (phoneStatus !== 'available') {
+      setError('Please use a valid and available phone number.');
       return;
     }
 
@@ -108,6 +197,32 @@ const ContactInfo = ({
     'Yemen', 'Zambia', 'Zimbabwe'
   ];
 
+  const renderEmailStatus = () => {
+    switch (emailStatus) {
+      case 'loading':
+        return <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />;
+      case 'available':
+        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+      case 'unavailable':
+        return <XCircle className="h-5 w-5 text-red-500" />;
+      default:
+        return null;
+    }
+  };
+
+  const renderPhoneStatus = () => {
+    switch (phoneStatus) {
+      case 'loading':
+        return <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />;
+      case 'available':
+        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+      case 'unavailable':
+        return <XCircle className="h-5 w-5 text-red-500" />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
@@ -142,12 +257,24 @@ const ContactInfo = ({
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 pl-10 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-1"
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 pl-10 pr-10 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-1"
                     placeholder="Enter your email address"
                     required
                   />
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 mt-0.5" />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 mt-0.5">
+                    {renderEmailStatus()}
+                  </div>
                 </div>
+                {emailStatus === 'unavailable' && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {emailError}
+                  </p>
+                )}
+                {emailStatus === 'available' && (
+                  <p className="mt-2 text-sm text-green-600">Email is available!</p>
+                )}
               </div>
 
               <div>
@@ -160,12 +287,24 @@ const ContactInfo = ({
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 pl-10 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-1"
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 pl-10 pr-10 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-1"
                     placeholder="Enter your phone number"
                     required
                   />
                   <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 mt-0.5" />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 mt-0.5">
+                    {renderPhoneStatus()}
+                  </div>
                 </div>
+                {phoneStatus === 'unavailable' && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {phoneError}
+                  </p>
+                )}
+                {phoneStatus === 'available' && (
+                  <p className="mt-2 text-sm text-green-600">Phone number is available!</p>
+                )}
               </div>
             </div>
 
@@ -281,8 +420,12 @@ const ContactInfo = ({
 
               <button
                 type="submit"
-                disabled={loading}
-                className="inline-flex items-center px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading || emailStatus !== 'available' || phoneStatus !== 'available'}
+                className={`inline-flex items-center px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                  loading || emailStatus !== 'available' || phoneStatus !== 'available'
+                    ? 'bg-gray-400 cursor-not-allowed opacity-50'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                }`}
               >
                 {loading ? (
                   <>

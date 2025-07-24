@@ -229,6 +229,93 @@ export const availableUsernames = async (req, res) => {
   }
 };
 
+export const checkEmail = async (req, res) => {
+  const email = req.params["email"];
+  console.log("Checking email:", email);
+
+  if (!email) {
+    return res
+      .status(400)
+      .json({ valid: false, message: "Email is required" });
+  }
+
+  // Basic email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res
+      .status(400)
+      .json({ valid: false, message: "Invalid email format" });
+  }
+
+  try {
+    const result = await pool.query(
+      "SELECT COUNT(*) as count FROM contactinfo WHERE email = $1",
+      [email]
+    );
+
+    const count = parseInt(result.rows[0].count);
+    if (count > 0) {
+      return res
+        .status(200)
+        .json({
+          valid: false,
+          message: "Email already registered",
+        });
+    }
+
+    return res.status(200).json({ valid: true, message: "Email available" });
+  } catch (err) {
+    console.error("Error checking email:", err);
+    return res
+      .status(500)
+      .json({ valid: false, message: "Internal server error" });
+  }
+};
+
+export const checkPhoneNumber = async (req, res) => {
+  const phone = req.params["phone"];
+  console.log("Checking phone:", phone);
+
+  if (!phone) {
+    return res
+      .status(400)
+      .json({ valid: false, message: "Phone number is required" });
+  }
+
+  // Basic phone validation - remove spaces, dashes, parentheses
+  const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+  const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+  if (!phoneRegex.test(cleanPhone)) {
+    return res
+      .status(400)
+      .json({ valid: false, message: "Invalid phone number format" });
+  }
+
+  try {
+    const result = await pool.query(
+      "SELECT COUNT(*) as count FROM contactinfo WHERE phonenumber = $1",
+      [phone]
+    );
+
+    const count = parseInt(result.rows[0].count);
+    if (count > 0) {
+      return res
+        .status(200)
+        .json({
+          valid: false,
+          message: "Phone number already registered",
+        });
+    }
+
+    return res.status(200).json({ valid: true, message: "Phone number available" });
+  } catch (err) {
+    console.error("Error checking phone number:", err);
+    return res
+      .status(500)
+      .json({ valid: false, message: "Internal server error" });
+  }
+};
+
 export const userBlockCheck = async (req, res) => {
   const username = req.params["username"] || req.body.username;
   if (!username) {

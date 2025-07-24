@@ -1,5 +1,5 @@
 import express from 'express';
-import { getHomePage, validateAccount, getBalance, searchAccounts, get_notifications, getBills} from '../controllers/userController.js';
+import { getHomePage, validateAccount, getBalance, searchAccounts, get_notifications, getBills, getProfileData, updateProfileField} from '../controllers/userController.js';
 import { authenticateJWT } from '../controllers/authController.js';
 import { getUserBalance } from '../controllers/userController.js';
 
@@ -13,7 +13,11 @@ router.get('/assigned/:accountid',authenticateJWT, getBills);
 
 router.get('/balance', authenticateJWT, getBalance);
 router.get('/accountsearch', authenticateJWT, searchAccounts);
-router.get('/notifications', authenticateJWT, get_notifications)
+router.get('/notifications', authenticateJWT, get_notifications);
+router.get('/profileData/:accountid', authenticateJWT, getProfileData);
+router.put('/updateProfile',authenticateJWT, updateProfileField);
+
+
 //router.get('/balance', authenticateJWT, getUserBalance);
 
 export default router;

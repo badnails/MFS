@@ -1,16 +1,23 @@
-import React from 'react';
+import React,  { useState } from 'react';
 import { useDataReload } from '../hooks/useDataReload';
 import { LogOut, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import ProfileComponent from './ProfileComponent';
 import NotificationCenter from './NotificationCenter';
 
 
 const DashboardLayout = ({ children }) => {
   const { user, logout } = useAuth();
   const reloadKey = useDataReload();
+  const [showProfile, setShowProfile] = useState(false);
 
   return (
     <div className="relative min-h-screen bg-gray-50 overflow-hidden">
+      {/* Profile Modal */}
+      <ProfileComponent 
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+      />
 
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200 relative z-[100]">
@@ -23,10 +30,13 @@ const DashboardLayout = ({ children }) => {
             </div>
             <div className="flex items-center space-x-4">
               <NotificationCenter />
-              <div className="flex items-center space-x-2">
-                <User className="h-5 w-5 text-gray-400" />
-                <span className="text-sm text-gray-700">{user?.accountname}</span>
-              </div>
+              <button
+                onClick={() => setShowProfile(true)}
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <User className="h-5 w-5" />
+                <span className="text-sm">{user?.accountname}</span>
+              </button>
               <button
                 onClick={logout}
                 className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
