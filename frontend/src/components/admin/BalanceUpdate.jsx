@@ -1,33 +1,39 @@
 // src/components/admin/BalanceUpdate.jsx
 import React, { useState } from 'react';
-import { Search, CreditCard, AlertCircle, CheckCircle } from 'lucide-react';
+import { CreditCard, AlertCircle, CheckCircle } from 'lucide-react';
 import axios from 'axios';
+import AccountSearch from '../common/AccountSearch';
 
 const BalanceUpdate = () => {
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedAccount, setSelectedAccount] = useState(null);
+  const [selectedAccountType, setSelectedAccountType] = useState('PERSONAL');
   const [balanceChange, setBalanceChange] = useState('');
   const [operation, setOperation] = useState('add'); // 'add' or 'subtract'
   const [loading, setLoading] = useState(false);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [accountBalance, setAccountBalance] = useState(null);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  const searchAccount = async () => {
-    if (!searchTerm.trim()) return;
-    
-    setLoading(true);
+  const fetchAccountBalance = async (accountId) => {
+    setBalanceLoading(true);
     try {
-      const response = await axios.get(`/user/validate-account/${searchTerm}`);
-      setSelectedAccount(response.data);
-      //console.log(selectedAccount.accountId);
-      setMessage({ type: '', text: '' });
+      const response = await axios.get(`/user/balance/${accountId}`);
+      setAccountBalance(response.data.availableBalance);
     } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.error || 'Account not found' 
-      });
-      setSelectedAccount(null);
+      console.error('Failed to fetch balance:', error);
+      setAccountBalance(null);
     } finally {
-      setLoading(false);
+      setBalanceLoading(false);
+    }
+  };
+
+  const handleAccountSelect = (account) => {
+    setSelectedAccount(account);
+    setMessage({ type: '', text: '' });
+    setAccountBalance(null);
+    // Fetch balance for the selected account
+    if (account && account.accountid) {
+      fetchAccountBalance(account.accountid);
     }
   };
 
@@ -40,7 +46,7 @@ const BalanceUpdate = () => {
       const finalAmount = operation === 'subtract' ? -amount : amount;
       
       await axios.post('/admin/balanceupdate', {
-        accountId: selectedAccount.accountId,
+        accountId: selectedAccount.accountid,
         amount: finalAmount
       });
 
@@ -49,9 +55,13 @@ const BalanceUpdate = () => {
         text: `Balance ${operation === 'add' ? 'added' : 'subtracted'} successfully!` 
       });
       
-      // Refresh account data
-      searchAccount();
+      // Reset the form
       setBalanceChange('');
+      
+      // Refetch the updated balance
+      if (selectedAccount && selectedAccount.accountid) {
+        await fetchAccountBalance(selectedAccount.accountid);
+      }
     } catch (error) {
       setMessage({ 
         type: 'error', 
@@ -76,29 +86,38 @@ const BalanceUpdate = () => {
         <p className="text-gray-600">Search for an account and update their balance.</p>
       </div>
 
-      {/* Search Section */}
+      {/* Account Search Section */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Search Account</h3>
-        <div className="flex space-x-4">
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Enter Account ID or Name"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && searchAccount()}
-            />
-          </div>
-          <button
-            onClick={searchAccount}
-            disabled={loading || !searchTerm.trim()}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2"
+        
+        {/* Account Type Selection */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Account Type
+          </label>
+          <select
+            value={selectedAccountType}
+            onChange={(e) => {
+              setSelectedAccountType(e.target.value);
+              setSelectedAccount(null); // Reset selection when type changes
+              setAccountBalance(null); // Reset balance when type changes
+              setMessage({ type: '', text: '' }); // Clear messages
+            }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <Search className="h-4 w-4" />
-            <span>Search</span>
-          </button>
+            <option value="PERSONAL">Personal Account</option>
+            <option value="AGENT">Agent Account</option>
+            <option value="REVENUE">Revenue Account</option>
+          </select>
         </div>
+
+        {/* Account Search Component */}
+        <AccountSearch
+          accountType={selectedAccountType}
+          onSelectAccount={handleAccountSelect}
+          placeholder={`Search for ${selectedAccountType.toLowerCase()} account...`}
+          displayStyle="dropdown"
+        />
       </div>
 
       {/* Account Details */}
@@ -110,7 +129,7 @@ const BalanceUpdate = () => {
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-gray-600">Account ID</label>
-                  <p className="text-gray-900">{selectedAccount.accountId}</p>
+                  <p className="text-gray-900">{selectedAccount.accountid}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Name</label>
@@ -126,16 +145,22 @@ const BalanceUpdate = () => {
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-gray-600">Available Balance</label>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {formatCurrency(selectedAccount.availablebalance)}
+                  {balanceLoading ? (
+                    <p className="text-gray-500 animate-pulse">Loading balance...</p>
+                  ) : accountBalance !== null ? (
+                    <p className="text-2xl font-bold text-gray-900">
+                      {formatCurrency(accountBalance)}
+                    </p>
+                  ) : (
+                    <p className="text-gray-500">Balance unavailable</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Status</label>
+                  <p className="text-lg font-medium text-green-600">
+                    {selectedAccount.accountstatus || 'ACTIVE'}
                   </p>
                 </div>
-                {/* <div>
-                  <label className="text-sm font-medium text-gray-600">Available Balance</label>
-                  <p className="text-lg text-gray-900">
-                    {formatCurrency(selectedAccount.availablebalance)}
-                  </p>
-                </div> */}
               </div>
             </div>
           </div>
@@ -167,7 +192,7 @@ const BalanceUpdate = () => {
                   placeholder="0.00"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={balanceChange}
-                  onChange={(e) => setBalanceChange(e.target.value)}
+                  onChange={(e) => setBalanceChange(Math.abs(parseFloat(e.target.value)))}
                 />
               </div>
             </div>

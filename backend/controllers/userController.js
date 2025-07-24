@@ -80,8 +80,7 @@ export const validateAccount = async (req, res) => {
 };
 
 export const getBalance = async (req, res) => {
-  const accountId = req.user?.accountid;
-  console.log(accountId);
+  const accountId = req.params?.id || req.user?.accountid;
   if (!accountId) return res.status(401).json({ error: "Unauthorized" });
 
   try {
@@ -119,7 +118,7 @@ export async function searchAccounts(req, res) {
     // Search by both account ID and account name
     const result = await pool.query(
       `
-      SELECT accountid, username, accounttype, accountstatus 
+      SELECT accountid, username, accounttype, accountstatus
       FROM accounts 
       WHERE accounttype = $1 
         AND accountstatus = 'ACTIVE'
@@ -207,4 +206,92 @@ export const getBills = async(req, res) => {
     res.status(500).json({ error: 'Failed to fetch bills' });
   }
 
+}
+
+export const getBillBatches = async(req, res) =>{
+  const billerid = req.params.billerid;
+  try{
+    const result = await pool.query(`SELECT batchid, batchname FROM billbatches WHERE accountid = $1`, [billerid]);
+    return res.status(200).json(result.rows);
+  }catch(e)
+  {
+    console.log(e);
+    return res.status(500).json({
+      valid: false,
+      message: "ISO"
+    })
+  }
+}
+
+export const getBillFields = async(req, res) =>{
+  const batchid = req.params.batchid;
+  try{
+    const result = await pool.query(`SELECT batchid, field_name, field_type FROM bill_fields WHERE batchid = $1`, [batchid]);
+    return res.status(200).json(result.rows);
+  }catch(e)
+  {
+    console.log(e);
+    return res.status(500).json({
+      valid: false,
+      message: "ISO"
+    })
+  }
+}
+
+export const searchBills = async (req, res) =>{
+  const batchid = req.body.batchid;
+  const fieldValues = req.body.fieldValues;
+  console.log(fieldValues);
+  try{
+    const sql = `
+    SELECT b.billid, b.transactionid, b.amount, b.issuedate, b.duedate
+    FROM bills b
+    WHERE b.batchid = $1
+      AND b.billid IN (
+        SELECT bad.billid
+        FROM bill_auth_data bad
+        JOIN bill_fields bf ON bad.field_id = bf.id
+        JOIN jsonb_each_text($2) AS input(field_name, field_value)
+          ON bf.field_name = input.field_name AND bad.field_value = input.field_value
+        WHERE bf.batchid = $1
+        GROUP BY bad.billid
+        HAVING COUNT(DISTINCT bf.field_name) = (
+          SELECT COUNT(*) FROM jsonb_each_text($2)
+        )
+      ) AND NOT EXISTS(SELECT 1 FROM transactions WHERE transactionid = b.transactionid AND transactionstatus = 'COMPLETED');
+    `;
+
+const params = [batchid, JSON.stringify(fieldValues)];
+const { rows } = await pool.query(sql, params);
+console.log(rows);
+return res.status(200).json(rows);
+
+  }catch(e)
+  {
+    console.log(e);
+    return res.status(500).json({
+      valid: false,
+      message: "ISO"
+    })
+  }
+}
+
+export const linkBillTransaction = async (req, res) =>{
+  const {transactionId, billId} = req.body;
+  try{
+    await pool.query(`UPDATE bills
+                      SET transactionid = $1
+                      WHERE billid = $2`, [transactionId, billId]);
+    return res.status(200).json({
+      valid: true,
+      message: "Trx Linked"
+    })
+  }catch(e)
+  {
+    console.log(e);
+    return res.status(500).json({
+      valid: false,
+      message: "ISO"
+    });
+  }
 }

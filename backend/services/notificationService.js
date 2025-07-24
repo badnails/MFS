@@ -53,20 +53,18 @@ class NotificationService {
   async sendSocketNotification(payload) {
     const { recipient_id, type, data } = payload;
 
-    let message;
+    let message, trx_data;
     if (type === "CREDIT" || type === "DEBIT") {
       const response = await get_transaction_details(
         null,
         null,
         data.transactionid
       );
-      const trx_data = response.transactionDetails;
+      trx_data = response.transactionDetails;
       const amount = parseFloat(trx_data.subamount);
       message = `You have ${
         type === "CREDIT" ? "received" : "sent"
-      } BDT ${amount}${type === "CREDIT" ? " from " : " to "}${
-        trx_data.recipient
-      }`;
+      } BDT ${amount}${type === "CREDIT" ? ` from  ${trx_data.sender}`: ` to ${trx_data.recipient}`}`;
     }
 
     if (recipient_id) {
@@ -75,6 +73,7 @@ class NotificationService {
         type,
         data: data || {},
         timestamp: new Date().toISOString(),
+        fee:trx_data.feesamount
       });
     }
   }

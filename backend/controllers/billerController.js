@@ -67,8 +67,8 @@ export const getBillerStatsToday = async (req, res) => {
     const statsQuery = `
       SELECT
         COUNT(*) AS "totalBills",
-        COUNT(issuedtoaccountid) AS "assignedBills",
-        COUNT(*) - COUNT(issuedtoaccountid) AS "unassignedBills",
+        COUNT(*) AS "assignedBills",
+        COUNT(*) - COUNT(*) AS "unassignedBills",
         COALESCE(SUM(b.amount), 0) AS "totalAmount"
       FROM bills b
       JOIN billbatches bb ON b.batchid = bb.batchid
@@ -95,44 +95,68 @@ export const getBillerStatsToday = async (req, res) => {
 
 export const createBillBatch = async (req, res) => {
   const accountid = req.user.accountid;
-  //console.log(req.body);
+  
   const {
     batchname,
     description,
     recurrencetype,
     startdate,
-    penalty, 
-    amount
+    penalty_rate,
+    min_penalty,
+    max_penalty,
+    default_duration,
+    penalty_period,
+    dynamic_fields
   } = req.body;
 
-  const batchid = uuidv4();
+  console.log({batchname,
+    description,
+    recurrencetype,
+    startdate,
+    penalty_rate,
+    min_penalty,
+    max_penalty,
+    default_duration,
+    penalty_period,
+    dynamic_fields});
+
 
   try {
     const query = `
-      INSERT INTO billbatches (
-        batchid,
-        accountid,
-        batchname,
-        description,
-        recurrencetype,
-        startdate,
-        penalty,
-        amount
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      SELECT create_bill_batch($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     `;
 
-    await pool.query(query, [
-      batchid,
-      accountid,
+    const response = await pool.query(query, [
       batchname,
       description || null,
       recurrencetype,
       startdate,
-      penalty !== '' ? parseInt(penalty) : null,
-      amount
+      accountid,
+      penalty_rate ? parseFloat(penalty_rate) : 0,
+      min_penalty ? parseFloat(min_penalty) : 0,
+      max_penalty ? parseFloat(max_penalty) : 0,
+      default_duration || '1 day',
+      JSON.stringify(dynamic_fields)
     ]);
 
-    res.status(201).json({ message: 'Batch created successfully', batchid });
+    // If there are dynamic fields, we could store them in a separate table
+    // For now, we'll return them in the response for confirmation
+    const batchid = response.rows[0].create_bill_batch;
+    const responseData = {
+      message: 'Batch created successfully',
+      batchid,
+      batchname,
+      description,
+      recurrencetype,
+      startdate,
+      penalty_rate,
+      min_penalty,
+      max_penalty,
+      default_duration,
+      dynamic_fields
+    };
+
+    res.status(201).json(responseData);
   } catch (err) {
     console.error('Error creating batch:', err);
     res.status(500).json({ error: 'Failed to create batch' });
@@ -171,14 +195,83 @@ export const getBatches = async(req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT batchid, batchname, amount FROM billbatches WHERE accountid = $1 AND isactive = true ORDER BY startdate DESC`,
+      `SELECT batchid, batchname, description, recurrencetype, startdate, penalty_rate, min_penalty, max_penalty, default_duration 
+       FROM billbatches WHERE accountid = $1 AND isactive = true ORDER BY startdate DESC`,
       [accountid]
     );
-    //console.log(result);
-    res.json(result.rows); // send array of { batchid, batchname }
+    
+    res.json({ batches: result.rows });
   } catch (err) {
     console.error('Error fetching bill batches:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const checkBatchNameAvailability = async (req, res) => {
+  const accountid = req.user.accountid;
+  const { batchname } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT COUNT(*) FROM billbatches WHERE accountid = $1 AND LOWER(batchname) = LOWER($2)`,
+      [accountid, batchname]
+    );
+    
+    const isAvailable = parseInt(result.rows[0].count) === 0;
+    res.json({ available: isAvailable });
+  } catch (err) {
+    console.error('Error checking batch name availability:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getBillFields = async (req, res) => {
+  const { batchid } = req.params;
+  const accountId = req.user.accountid;
+
+  try {
+    // First verify that the batch belongs to the current user
+    const batchQuery = `
+      SELECT batchid FROM billbatches 
+      WHERE batchid = $1 AND accountid = $2
+    `;
+    const batchResult = await pool.query(batchQuery, [batchid, accountId]);
+    
+    if (batchResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Batch not found or not authorized' });
+    }
+
+    // Get the bill fields for this batch
+    const fieldsQuery = `
+      SELECT field_name, field_type 
+      FROM bill_fields 
+      WHERE batchid = $1 
+      ORDER BY id
+    `;
+    const fieldsResult = await pool.query(fieldsQuery, [batchid]);
+
+    res.json(fieldsResult.rows);
+  } catch (err) {
+    console.error('Error fetching bill fields:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const createBills = async(req, res) => {
+  const batchid = req.params.batchid;
+  const data = req.body.bills;
+  
+  try{
+    const response = await pool.query(`SELECT create_bills($1, $2)`, [batchid, JSON.stringify(data)]);
+    return res.status(200).json(response.rows[0].create_bills);
+  }catch(e)
+  {
+    console.log(e);
+    return res.status(500).json({
+      valid: false,
+      message: "ISO"
+    });
+  }
+
+}
 

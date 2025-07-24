@@ -84,7 +84,7 @@ const PaymentComponent = () => {
 
   const handleAmountChange = (e) => {
     const value = e.target.value;
-    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+    if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
       setAmount(value);
       setError("");
     }
@@ -127,9 +127,24 @@ const PaymentComponent = () => {
       const transactionId = response.data.transactionid;
       //console.log(transactionId);
 
+      // If this is a bill payment, link the transaction to the bill
+      if (paymentType === 'bill-payment' && billId && transactionId) {
+        try {
+          await axios.post("/user/linkbilltransaction", {
+            transactionId,
+            billId
+          });
+        } catch (linkErr) {
+          console.error("Failed to link bill to transaction:", linkErr);
+          setError("Failed to link bill to transaction. Please try again.");
+          return; // Stop the payment flow if linking fails
+        }
+      }
+
       navigate("/payment-pass", {
         state: {
-          transactionId
+          transactionId,
+          billId
         }
       });
     } catch (err) {
