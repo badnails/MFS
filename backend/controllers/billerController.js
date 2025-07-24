@@ -230,7 +230,6 @@ export const getBillFields = async (req, res) => {
   const accountId = req.user.accountid;
 
   try {
-    // First verify that the batch belongs to the current user
     const batchQuery = `
       SELECT batchid FROM billbatches 
       WHERE batchid = $1 AND accountid = $2
@@ -241,7 +240,6 @@ export const getBillFields = async (req, res) => {
       return res.status(404).json({ error: 'Batch not found or not authorized' });
     }
 
-    // Get the bill fields for this batch
     const fieldsQuery = `
       SELECT field_name, field_type 
       FROM bill_fields 
