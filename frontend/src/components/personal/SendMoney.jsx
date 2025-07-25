@@ -1,5 +1,6 @@
 // src/components/personal/SendMoney.jsx - Update to use new backend endpoints
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { X, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import axios from 'axios';
@@ -52,8 +53,8 @@ const SendMoney = ({ onClose }) => {
     });
   };
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  return createPortal(
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[150] p-4">
       <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -115,7 +116,8 @@ const SendMoney = ({ onClose }) => {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

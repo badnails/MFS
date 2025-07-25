@@ -82,14 +82,6 @@ const PersonalDashboard = ({ reloadKey }) => {
       color: 'bg-orange-500',
       hoverColor: 'hover:bg-orange-600'
     }
-    // {
-    //   id: 'transaction-history',
-    //   title: 'Transaction History',
-    //   description: 'View all your transactions',
-    //   icon: History,
-    //   color: 'bg-indigo-500',
-    //   hoverColor: 'hover:bg-indigo-600'
-    // }
   ];
 
   const openModal = (modalType) => {
@@ -136,7 +128,7 @@ const PersonalDashboard = ({ reloadKey }) => {
       {/* Quick Actions */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map(({ id, title, description, icon: Icon, color, hoverColor }) => ( // eslint-disable-line no-unused-vars
             <button
               key={id}
@@ -159,49 +151,6 @@ const PersonalDashboard = ({ reloadKey }) => {
           isModal={false} 
         />
       </div>
-
-      {/* Transactions
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <div className="px-4 py-5 sm:px-6 flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-medium text-gray-900">Recent Transactions</h3>
-            <p className="text-sm text-gray-500">Your latest transaction history</p>
-          </div>
-          <button
-            onClick={fetchDashboardData}
-            className="btn-secondary flex items-center space-x-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            <span>Refresh</span>
-          </button>
-        </div>
-        <ul className="divide-y divide-gray-200">
-          {dashboardData?.transactions?.length > 0 ? (
-            dashboardData.transactions.map((t, idx) => (
-              <li key={idx} className="px-4 py-4 sm:px-6">
-                <div className="flex justify-between">
-                  <div className="flex items-center">
-                    <History className="h-5 w-5 text-gray-400 mr-3" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{t.transactiontype || 'Transaction'}</p>
-                      <p className="text-sm text-gray-500">{formatDate(t.initiationtimestamp)}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">{formatCurrency(t.totalamount)}</p>
-                    <p className="text-sm text-gray-500">Status: {t.transactionstatus || 'Completed'}</p>
-                  </div>
-                </div>
-              </li>
-            ))
-          ) : (
-            <li className="px-4 py-8 text-center">
-              <History className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">No transactions found</p>
-            </li>
-          )}
-        </ul>
-      </div> */}
 
       {/* Modals */}
       {activeModal === 'send-money' && <SendMoney onClose={closeModal} />}

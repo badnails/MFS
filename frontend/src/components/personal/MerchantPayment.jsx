@@ -1,5 +1,6 @@
 // src/components/personal/MerchantPayment.jsx
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { X, Store, QrCode } from 'lucide-react';
 import AccountSearch from '../common/AccountSearch';
@@ -28,8 +29,8 @@ const MerchantPayment = ({ onClose }) => {
     });
   };
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  return createPortal(
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[150] p-4">
       <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -93,7 +94,8 @@ const MerchantPayment = ({ onClose }) => {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

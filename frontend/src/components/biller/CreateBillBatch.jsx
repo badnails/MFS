@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { createPortal } from 'react-dom';
 import { X, Plus, Trash2, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 
 const recurrenceOptions = [
@@ -548,8 +549,8 @@ const CreateBillBatch = ({ onClose }) => {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[150] bg-black bg-opacity-40 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b p-6 flex justify-between items-center">
           <div>
@@ -628,7 +629,8 @@ const CreateBillBatch = ({ onClose }) => {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

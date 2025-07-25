@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { X, Plus, Search, ArrowLeft, Trash2 } from 'lucide-react';
 
@@ -989,8 +990,8 @@ const AssignBill = ({ onClose }) => {
         </div>
     );
 
-    return (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-center justify-center p-4">
+    return createPortal(
+        <div className="fixed inset-0 z-[150] bg-black bg-opacity-40 flex items-center justify-center p-4">
             <div className="bg-white rounded-xl shadow-lg w-full max-w-5xl h-full max-h-[95vh] overflow-hidden">
                 <div className="flex flex-col h-full">
                     {/* Header */}
@@ -1020,7 +1021,8 @@ const AssignBill = ({ onClose }) => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

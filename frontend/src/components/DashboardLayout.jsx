@@ -25,7 +25,7 @@ const DashboardLayout = ({ children }) => {
               <NotificationCenter />
               <div className="flex items-center space-x-2">
                 <User className="h-5 w-5 text-gray-400" />
-                <span className="text-sm text-gray-700">{user?.accountname}</span>
+                <span className="text-sm text-gray-700">{user?.username}</span>
               </div>
               <button
                 onClick={logout}
