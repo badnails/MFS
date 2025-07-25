@@ -73,6 +73,6 @@ export const adminSidebarConfig = {
     { id: 'balance', label: 'Balance Update', icon: CreditCard },
     { id: 'accounts', label: 'Accounts', icon: Users },
     { id: 'transactions', label: 'Transactions', icon: History },
-    { id: 'settings', label: 'Settings', icon: Settings }
+    { id: 'settings', label: 'Analytics', icon: Settings }
   ]
 };
