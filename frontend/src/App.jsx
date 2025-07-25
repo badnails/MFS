@@ -14,6 +14,23 @@ import { ToastContainer } from 'react-toastify';
 import PaymentPassword from './components/payment/PaymentPassword';
 import PaymentOTP from './components/payment/PaymentOTP';
 import BillerDashboard from './components/biller/BillerDashboard';
+import PersonalAccountInfo from './components/PersonalAccountInfo';
+import ContactInfo from './components/ContactInfo';
+import Completion from './components/Completion';
+import InstitutionalAccountInfo from './components/InstitutionalAccountInfo';
+// In your main router file
+import AccountSetupContainer from './components/AccountSetupContainer';
+
+// Profile components
+import PersonalDashboardProfile from './components/profile/PersonalDashboardProfile';
+import ContactInfoUpdate from './components/profile/ContactInfoUpdate';
+import PersonalInfoUpdate from './components/profile/PersonalInfoUpdate';
+import InstitutionalInfoUpdate from './components/profile/InstitutionalInfoUpdate';
+import TOTPRecovery from './components/profile/TOTPRecovery';
+import AccountDetails from './components/accountDetails';
+
+// Replace your current routing with:
+
 
 
 function App() {
@@ -25,6 +42,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/otp" element={<OTPVerification />} />
             <Route path="/signup" element={<Signup />} />
+           
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
@@ -63,6 +81,42 @@ function App() {
             />
             <Route path="/payment-completion" element={<PaymentCompletion />} />
             <Route path="/" element={<Navigate to="/login" />} />
+            
+            <Route path="/account-setup" element={<AccountSetupContainer />} />
+            <Route path="/completion" element={<Completion />} />
+            
+            {/* Profile Management Routes */}
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <PersonalDashboardProfile />
+              </ProtectedRoute>
+            } />
+            <Route path="/account-details" element={
+              <ProtectedRoute>
+                <AccountDetails />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile/contact-info" element={
+              <ProtectedRoute>
+                <ContactInfoUpdate />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile/personal-info" element={
+              <ProtectedRoute>
+                <PersonalInfoUpdate />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile/institutional-info" element={
+              <ProtectedRoute>
+                <InstitutionalInfoUpdate />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile/totp-recovery" element={
+              <ProtectedRoute>
+                <TOTPRecovery />
+              </ProtectedRoute>
+            } />
+
           </Routes>
         </div>
       <ToastContainer />

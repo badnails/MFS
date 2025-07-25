@@ -1,0 +1,227 @@
+/* ProfileComponent.css */
+.profile-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.profile-modal {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e1e5e9;
+}
+
+.profile-header h2 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+}
+
+.close-btn:hover {
+  color: #000;
+}
+
+.profile-content {
+  padding: 20px;
+}
+
+.profile-section {
+  margin-bottom: 30px;
+}
+
+.profile-section h3 {
+  color: #34495e;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 5px;
+  margin-bottom: 15px;
+}
+
+.profile-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.profile-field label {
+  font-weight: 600;
+  color: #2c3e50;
+  min-width: 150px;
+}
+
+.field-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.edit-btn:hover {
+  opacity: 1;
+}
+
+.edit-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.edit-input {
+  padding: 5px 10px;
+  border: 1px solid #bdc3c7;
+  border-radius: 4px;
+  min-width: 200px;
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.edit-buttons button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 3px;
+  font-size: 14px;
+}
+
+.edit-buttons button:first-child {
+  color: #27ae60;
+}
+
+.edit-buttons button:first-child:hover {
+  background-color: #d5f4e6;
+}
+
+.edit-buttons button:last-child {
+  color: #e74c3c;
+}
+
+.edit-buttons button:last-child:hover {
+  background-color: #fadbd8;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+/* Add these styles to your ProfileComponent.css */
+
+.header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.edit-profile-btn {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.edit-profile-btn:hover {
+  background-color: #2980b9;
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.update-btn {
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.update-btn:hover:not(:disabled) {
+  background-color: #229954;
+}
+
+.update-btn:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
+
+.cancel-btn {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.cancel-btn:hover {
+  background-color: #c0392b;
+}
+
+.profile-input {
+  padding: 5px 10px;
+  border: 1px solid #bdc3c7;
+  border-radius: 4px;
+  width: 200px;
+}
+
+.profile-value {
+  color: #2c3e50;
+}
+
+.profile-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #ecf0f1;
+}

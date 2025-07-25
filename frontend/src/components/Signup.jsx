@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff, Loader2, QrCode, UserCheck, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import axios from 'axios';
-import { debounce } from 'lodash';
+import { debounce, fromPairs } from 'lodash';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -19,7 +19,7 @@ const Signup = () => {
   const [qrCode, setQrCode] = useState('');
   const [totpKey, setTotpKey] = useState('');
   const [showQR, setShowQR] = useState(false);
-  
+  const [user, setUser] = useState();
   const [usernameStatus, setUsernameStatus] = useState('idle'); // idle, loading, available, unavailable
   const [usernameError, setUsernameError] = useState('');
   const [passwordLength, setPasswordLength] = useState(null);
@@ -145,7 +145,9 @@ const Signup = () => {
       const { confirmPassword, ...submitData } = formData;
       const response = await axios.post('/auth/signup', submitData);
       
-      const { qrURI, totpkey } = response.data;
+      const { user, qrURI, totpkey } = response.data;
+      //console.log(user);
+      setUser(user);
       setQrCode(qrURI);
       setTotpKey(totpkey);
       setShowQR(true);
@@ -157,8 +159,11 @@ const Signup = () => {
   };
 
   const handleContinue = () => {
-      navigate('/login');
-  };
+      //navigate('/login');
+     
+      navigate('/account-setup', {state : {accountType: formData.accounttype, accountid: user.accountId}});
+      
+  };  
 
   const getSelectedAccountType = () => {
     return accountTypes.find(type => type.value === formData.accounttype);

@@ -1,5 +1,5 @@
 import express from 'express';
-import { getHomePage, validateAccount, getBalance, searchAccounts, get_notifications, getBills, getBillBatches, getBillFields, searchBills, linkBillTransaction} from '../controllers/userController.js';
+import { getHomePage, validateAccount, getBalance, searchAccounts, get_notifications, getBills, getProfileData, updateProfileField, uploadProfilePicture, getProfilePicture, deleteProfilePicture, uploadMiddleware, getBillBatches, getBillFields, searchBills, linkBillTransaction} from '../controllers/userController.js';
 import { authenticateJWT } from '../controllers/authController.js';
 import { getUserBalance } from '../controllers/userController.js';
 

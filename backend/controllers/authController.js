@@ -229,6 +229,93 @@ export const availableUsernames = async (req, res) => {
   }
 };
 
+export const checkEmail = async (req, res) => {
+  const email = req.params["email"];
+  console.log("Checking email:", email);
+
+  if (!email) {
+    return res
+      .status(400)
+      .json({ valid: false, message: "Email is required" });
+  }
+
+  // Basic email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res
+      .status(400)
+      .json({ valid: false, message: "Invalid email format" });
+  }
+
+  try {
+    const result = await pool.query(
+      "SELECT COUNT(*) as count FROM contactinfo WHERE email = $1",
+      [email]
+    );
+
+    const count = parseInt(result.rows[0].count);
+    if (count > 0) {
+      return res
+        .status(200)
+        .json({
+          valid: false,
+          message: "Email already registered",
+        });
+    }
+
+    return res.status(200).json({ valid: true, message: "Email available" });
+  } catch (err) {
+    console.error("Error checking email:", err);
+    return res
+      .status(500)
+      .json({ valid: false, message: "Internal server error" });
+  }
+};
+
+export const checkPhoneNumber = async (req, res) => {
+  const phone = req.params["phone"];
+  console.log("Checking phone:", phone);
+
+  if (!phone) {
+    return res
+      .status(400)
+      .json({ valid: false, message: "Phone number is required" });
+  }
+
+  // Basic phone validation - remove spaces, dashes, parentheses
+  const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+  const phoneRegex = /^[\+]?[0-9][\d]{0,15}$/;
+  if (!phoneRegex.test(cleanPhone)) {
+    return res
+      .status(400)
+      .json({ valid: false, message: "Invalid phone number format" });
+  }
+
+  try {
+    const result = await pool.query(
+      "SELECT COUNT(*) as count FROM contactinfo WHERE phonenumber = $1",
+      [phone]
+    );
+
+    const count = parseInt(result.rows[0].count);
+    if (count > 0) {
+      return res
+        .status(200)
+        .json({
+          valid: false,
+          message: "Phone number already registered",
+        });
+    }
+
+    return res.status(200).json({ valid: true, message: "Phone number available" });
+  } catch (err) {
+    console.error("Error checking phone number:", err);
+    return res
+      .status(500)
+      .json({ valid: false, message: "Internal server error" });
+  }
+};
+
 export const userBlockCheck = async (req, res) => {
   const username = req.params["username"] || req.body.username;
   if (!username) {
@@ -255,4 +342,195 @@ export const userBlockCheck = async (req, res) => {
   }
 
   return res.status(404).json({ valid: true, message: "Please try again after a some time" });
+};
+
+export const addUserInformation = async (req, res) => {
+  const { isIndividual, formData, accountid } = req.body; 
+
+
+  try {
+    if (isIndividual) {
+      const { firstname, lastname, dateofbirth, gender, nationality } = formData;
+      console.log(formData);
+      console.log(accountid);
+      await pool.query(
+        `INSERT INTO individualinfo (accountid, firstname, lastname, dateofbirth, gender, nationality)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [accountid, firstname, lastname, dateofbirth, gender, nationality]
+      );
+    } else {
+      const { merchantname, websiteurl, category_id } = formData;
+      await pool.query(
+        `INSERT INTO institutionalinfo (accountid, merchantname, websiteurl, category_id)
+         VALUES ($1, $2, $3, $4)`,
+        [accountid, merchantname, websiteurl, category_id]
+      );
+    } 
+
+
+    res.status(200).json({ message: 'Information saved successfully' });
+  } catch (err) {
+    console.error('DB insert error:', err);
+    res.status(500).json({ error: 'Failed to save information' });
+  }
+};
+
+export const addUserContactInformation = async (req, res) => {
+  const { formData, accountid } = req.body;
+  const {
+    email,
+    phone,
+    addressline1,
+    addressline2,
+    city,
+    state,
+    country,
+    zipcode,
+  } = formData;
+  
+
+  if (!email || !phone || !accountid) {
+    return res.status(400).json({ error: 'Email, phone number, and account ID are required.' });
+  }
+
+  try {
+    await pool.query(
+      `INSERT INTO contactinfo (
+        accountid, email, phonenumber, addressline1, addressline2, city, state, country, postalcode
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      ON CONFLICT (accountid) DO UPDATE SET
+        email = EXCLUDED.email,
+        phonenumber = EXCLUDED.phonenumber,
+        addressline1 = EXCLUDED.addressline1,
+        addressline2 = EXCLUDED.addressline2,
+        city = EXCLUDED.city,
+        state = EXCLUDED.state,
+        country = EXCLUDED.country,
+        postalcode = EXCLUDED.postalcode`,
+      [
+        accountid,
+        email,
+        phone,
+        addressline1,
+        addressline2,
+        city,
+        state,
+        country,
+        zipcode
+      ]
+    );
+
+    res.json({ message: 'Contact information saved successfully.' });
+  } catch (err) {
+    console.error('Error inserting contact info:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+// Add this function to your authController.js
+export const completeAccountSetup = async (req, res) => {
+  const { accountid, accountType, isIndividual, personalData, institutionalData, contactData } = req.body;
+  
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+
+    // Insert personal or institutional data
+    if (isIndividual && personalData) {
+      const { firstname, lastname, dateofbirth, gender, nationality } = personalData;
+      
+      await client.query(
+        `INSERT INTO individualinfo (accountid, firstname, lastname, dateofbirth, gender, nationality)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (accountid) DO UPDATE SET
+         firstname = EXCLUDED.firstname,
+         lastname = EXCLUDED.lastname,
+         dateofbirth = EXCLUDED.dateofbirth,
+         gender = EXCLUDED.gender,
+         nationality = EXCLUDED.nationality`,
+        [accountid, firstname, lastname, dateofbirth, gender, nationality]
+      );
+    } else if (!isIndividual && institutionalData) {
+      const { merchantname, websiteurl, category_id } = institutionalData;
+      
+      await client.query(
+        `INSERT INTO institutionalinfo (accountid, merchantname, websiteurl, category_id)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (accountid) DO UPDATE SET
+         merchantname = EXCLUDED.merchantname,
+         websiteurl = EXCLUDED.websiteurl,
+         category_id = EXCLUDED.category_id`,
+        [accountid, merchantname, websiteurl, category_id]
+      );
+    }
+
+    // Insert contact data
+    const { email, phone, addressline1, addressline2, city, state, country, zipcode } = contactData;
+    
+    await client.query(
+      `INSERT INTO contactinfo (
+        accountid, email, phonenumber, addressline1, addressline2, city, state, country, postalcode
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ON CONFLICT (accountid) DO UPDATE SET
+      email = EXCLUDED.email,
+      phonenumber = EXCLUDED.phonenumber,
+      addressline1 = EXCLUDED.addressline1,
+      addressline2 = EXCLUDED.addressline2,
+      city = EXCLUDED.city,
+      state = EXCLUDED.state,
+      country = EXCLUDED.country,
+      postalcode = EXCLUDED.postalcode`,
+      [accountid, email, phone, addressline1, addressline2, city, state, country, zipcode]
+    );
+
+    await client.query('COMMIT');
+    
+    res.status(200).json({ message: 'Account setup completed successfully' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Account setup error:', err);
+    res.status(500).json({ error: 'Failed to complete account setup' });
+  } finally {
+    client.release();
+  }
+};
+
+// Add TOTP regeneration endpoint
+export const regenerateTOTP = async (req, res) => {
+  const { accountid } = req.body;
+
+  if (!accountid) {
+    return res.status(400).json({ error: 'Account ID is required' });
+  }
+
+  try {
+    // Generate new TOTP secret
+    const totpkey = otplib.authenticator.generateSecret();
+
+    // Update the account with new TOTP secret
+    const result = await pool.query(
+      "UPDATE accounts SET totpcode = $1 WHERE accountid = $2 RETURNING username",
+      [totpkey, accountid]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+
+    const username = result.rows[0].username;
+
+    // Generate QR URI
+    const otpURI = otplib.authenticator.keyuri(username, "MFS", totpkey);
+    const qrURI = await qrcode.toDataURL(otpURI);
+
+    return res.status(200).json({ 
+      qrURI, 
+      totpkey,
+      message: 'TOTP regenerated successfully'
+    });
+  } catch (err) {
+    console.error("TOTP regeneration failed:", err);
+    return res.status(500).json({ error: "Failed to regenerate TOTP" });
+  }
 };
