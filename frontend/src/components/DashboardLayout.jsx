@@ -10,10 +10,10 @@ const DashboardLayout = ({ children }) => {
   const reloadKey = useDataReload();
 
   return (
-    <div className="relative min-h-screen bg-gray-50 overflow-hidden">
+    <div className="relative min-h-screen bg-gray-50">
 
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 relative z-[100]">
+      <header className="bg-white shadow-sm border-b border-gray-200 relative z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">

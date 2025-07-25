@@ -28,11 +28,8 @@ const Dashboard = () => {
     }
   };
 
-  return (
-    <DashboardLayout>
-      {renderDashboard()}
-    </DashboardLayout>
-  );
+  // All dashboards now have their own sidebar layout
+  return renderDashboard();
 };
 
 export default Dashboard;

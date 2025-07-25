@@ -4,7 +4,6 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import {
   Wallet,
-  History,
   RefreshCw,
   Send,
   CreditCard,
@@ -16,6 +15,8 @@ import CashOut from './personal/CashOut';
 import MerchantPayment from './personal/MerchantPayment';
 import BillPayment from './personal/BillPayment';
 import TransactionHistory from './common/TransactionHistory';
+import SidebarLayout from './layouts/SidebarLayout';
+import { personalSidebarConfig } from '../config/sidebarConfigs';
 
 const PersonalDashboard = ({ reloadKey }) => {
   const { user } = useAuth();
@@ -23,6 +24,10 @@ const PersonalDashboard = ({ reloadKey }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeModal, setActiveModal] = useState(null);
+  const [activeView, setActiveView] = useState('dashboard');
+
+  // Use sidebar configuration
+  const sidebarMenuItems = personalSidebarConfig.menuItems;
 
   const fetchDashboardData = async () => {
     try {
@@ -84,6 +89,14 @@ const PersonalDashboard = ({ reloadKey }) => {
     }
   ];
 
+  const handleSidebarItemClick = (itemId) => {
+    setActiveView(itemId);
+    if (['send-money', 'cash-out', 'merchant-payment', 'bill-payment'].includes(itemId)) {
+      setActiveModal(itemId);
+      setActiveView('dashboard'); // Keep dashboard view when opening modals
+    }
+  };
+
   const openModal = (modalType) => {
     setActiveModal(modalType);
   };
@@ -93,19 +106,78 @@ const PersonalDashboard = ({ reloadKey }) => {
     fetchDashboardData();
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading dashboard...</p>
+  const renderMainContent = () => {
+    if (loading) {
+      return (
+        <div className="min-h-96 flex items-center justify-center">
+          <div className="text-center">
+            <RefreshCw className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading dashboard...</p>
+          </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  return (
-    <div>
+    switch (activeView) {
+      case 'dashboard':
+        return renderDashboardContent();
+      case 'transaction-history':
+        return (
+          <div className="bg-white rounded-lg shadow">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Transaction History</h2>
+            </div>
+            <div className="p-6">
+              <TransactionHistory 
+                accountId={user?.accountid} 
+                isModal={false} 
+              />
+            </div>
+          </div>
+        );
+      case 'profile':
+        return (
+          <div className="bg-white rounded-lg shadow">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Profile</h2>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Account ID</label>
+                  <p className="text-sm text-gray-900">{user?.accountid}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                  <p className="text-sm text-gray-900">{user?.username}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Account Name</label>
+                  <p className="text-sm text-gray-900">{user?.accountname}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Account Type</label>
+                  <p className="text-sm text-gray-900 capitalize">{user?.accounttype}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <p className="text-sm text-gray-900">{user?.phonenumber}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Account Status</label>
+                  <p className="text-sm text-gray-900">{dashboardData?.user?.accountstatus || 'Active'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      default:
+        return renderDashboardContent();
+    }
+  };
+
+  const renderDashboardContent = () => (
+    <>
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
           {error}
@@ -121,7 +193,6 @@ const PersonalDashboard = ({ reloadKey }) => {
       {/* Account Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <OverviewCard title="Available Balance" icon={Wallet} color="green" value={formatCurrency(dashboardData?.user?.availablebalance)} />
-        {/* <OverviewCard title="Current Balance" icon={Wallet} color="blue" value={formatCurrency(dashboardData?.user?.currentbalance)} /> */}
         <OverviewCard title="Account Status" icon={Receipt} color="purple" value={dashboardData?.user?.accountstatus || 'Active'} />
       </div>
 
@@ -151,20 +222,36 @@ const PersonalDashboard = ({ reloadKey }) => {
           isModal={false} 
         />
       </div>
+    </>
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <SidebarLayout
+      menuItems={sidebarMenuItems}
+      brandName={personalSidebarConfig.brandName}
+      brandIcon={Wallet}
+      onMenuItemClick={handleSidebarItemClick}
+      activeMenuItem={activeView}
+    >
+      {renderMainContent()}
 
       {/* Modals */}
       {activeModal === 'send-money' && <SendMoney onClose={closeModal} />}
       {activeModal === 'cash-out' && <CashOut onClose={closeModal} />}
       {activeModal === 'merchant-payment' && <MerchantPayment onClose={closeModal} />}
       {activeModal === 'bill-payment' && <BillPayment onClose={closeModal} />}
-      {/* {activeModal === 'transaction-history' && (
-        <TransactionHistory 
-          accountId={user?.accountid} 
-          onClose={closeModal} 
-          isModal={true} 
-        />
-      )} */}
-    </div>
+    </SidebarLayout>
   );
 };
 
