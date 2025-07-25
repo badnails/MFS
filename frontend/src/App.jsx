@@ -21,6 +21,14 @@ import InstitutionalAccountInfo from './components/InstitutionalAccountInfo';
 // In your main router file
 import AccountSetupContainer from './components/AccountSetupContainer';
 
+// Profile components
+import PersonalDashboardProfile from './components/profile/PersonalDashboardProfile';
+import ContactInfoUpdate from './components/profile/ContactInfoUpdate';
+import PersonalInfoUpdate from './components/profile/PersonalInfoUpdate';
+import InstitutionalInfoUpdate from './components/profile/InstitutionalInfoUpdate';
+import TOTPRecovery from './components/profile/TOTPRecovery';
+import AccountDetails from './components/accountDetails';
+
 // Replace your current routing with:
 
 
@@ -77,6 +85,37 @@ function App() {
             <Route path="/account-setup" element={<AccountSetupContainer />} />
             <Route path="/completion" element={<Completion />} />
             
+            {/* Profile Management Routes */}
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <PersonalDashboardProfile />
+              </ProtectedRoute>
+            } />
+            <Route path="/account-details" element={
+              <ProtectedRoute>
+                <AccountDetails />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile/contact-info" element={
+              <ProtectedRoute>
+                <ContactInfoUpdate />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile/personal-info" element={
+              <ProtectedRoute>
+                <PersonalInfoUpdate />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile/institutional-info" element={
+              <ProtectedRoute>
+                <InstitutionalInfoUpdate />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile/totp-recovery" element={
+              <ProtectedRoute>
+                <TOTPRecovery />
+              </ProtectedRoute>
+            } />
 
           </Routes>
         </div>

@@ -3,14 +3,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import '../ProfileComponent.css';
 
-
-
-
-
-
-
-
-
 const EditableField = React.memo(({ label, section, fieldName, value, type = 'text', disabled = false, isEditing, handleInputChange }) => {
   try {
     return (

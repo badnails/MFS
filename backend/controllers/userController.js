@@ -1,5 +1,25 @@
 import pool from "../db.js";
 import jwt from "jsonwebtoken";
+import multer from "multer";
+
+// Configure multer for memory storage
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Check file type
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
+  }
+});
+
+export const uploadMiddleware = upload.single('profilePicture');
 
 export const getHomePage = async (req, res) => {
   const authHeader = req.headers.authorization;
@@ -211,7 +231,13 @@ export const getBills = async(req, res) => {
 
 export const updateProfileField = async (req, res) => {
   const { accountid, tableName, updates } = req.body;
-  console.log(req.body);
+  console.log('Update request:', { accountid, tableName, updates });
+  
+  // Validate required fields
+  if (!accountid || !tableName || !updates) {
+    return res.status(400).json({ error: 'Missing required fields: accountid, tableName, updates' });
+  }
+  
   // Validate allowed tables and fields
   const allowedTables = {
     'individualinfo': ['firstname', 'lastname', 'dateofbirth', 'gender', 'nationality'],
@@ -239,25 +265,46 @@ export const updateProfileField = async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // Build dynamic UPDATE query
-    const setClause = Object.keys(updates)
-      .map((field, index) => `${field} = $${index + 2}`)
-      .join(', ');
+    // First, check if record exists
+    const checkQuery = `SELECT 1 FROM ${tableName} WHERE accountid = $1`;
+    const checkResult = await client.query(checkQuery, [accountid]);
     
-    const values = [accountid, ...Object.values(updates)];
+    let result;
     
-    const query = `
-      UPDATE ${tableName} 
-      SET ${setClause}
-      WHERE accountid = $1
-      RETURNING *
-    `;
+    if (checkResult.rowCount === 0) {
+      // Record doesn't exist, INSERT
+      const insertFields = Object.keys(updates);
+      const insertValues = Object.values(updates);
+      const placeholders = insertValues.map((_, index) => `$${index + 2}`).join(', ');
+      
+      const insertQuery = `
+        INSERT INTO ${tableName} (accountid, ${insertFields.join(', ')})
+        VALUES ($1, ${placeholders})
+        RETURNING *
+      `;
+      
+      result = await client.query(insertQuery, [accountid, ...insertValues]);
+    } else {
+      // Record exists, UPDATE
+      const setClause = Object.keys(updates)
+        .map((field, index) => `${field} = $${index + 2}`)
+        .join(', ');
+      
+      const values = [accountid, ...Object.values(updates)];
+      
+      const updateQuery = `
+        UPDATE ${tableName} 
+        SET ${setClause}
+        WHERE accountid = $1
+        RETURNING *
+      `;
 
-    const result = await client.query(query, values);
+      result = await client.query(updateQuery, values);
+    }
     
     if (result.rowCount === 0) {
       await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'Account not found' });
+      return res.status(404).json({ error: 'Failed to update profile' });
     }
 
     await client.query('COMMIT');
@@ -317,13 +364,21 @@ export const getProfileData = async (req, res) => {
     
     // Get specific info based on account type
     if (account.accounttype === 'PERSONAL' || account.accounttype === 'AGENT') {
-      const individualQuery = `SELECT * FROM individualinfo WHERE accountid = $1`;
+      const individualQuery = `
+        SELECT accountid, firstname, lastname, dateofbirth, gender, nationality, 
+               profile_picture_filename, profile_picture_upload_date,
+               CASE WHEN profile_picture IS NOT NULL THEN true ELSE false END as has_profile_picture
+        FROM individualinfo 
+        WHERE accountid = $1
+      `;
       const individualResult = await client.query(individualQuery, [accountid]);
       console.log(individualResult.rows[0]);
       profileData.individual = individualResult.rows[0] || null;
     } else if (account.accounttype === 'BILLER' || account.accounttype === 'MERCHANT') {
       const institutionalQuery = `
-        SELECT i.*, ic.category_name 
+        SELECT i.*, ic.category_name,
+               i.profile_picture_filename, i.profile_picture_upload_date,
+               CASE WHEN i.profile_picture IS NOT NULL THEN true ELSE false END as has_profile_picture
         FROM institutionalinfo i 
         LEFT JOIN institution_category ic ON i.category_id = ic.id 
         WHERE i.accountid = $1
@@ -339,5 +394,214 @@ export const getProfileData = async (req, res) => {
     res.status(500).json({ error: 'Failed to get profile data' });
   } finally {
     client.release();
+  }
+};
+
+// Upload or update profile picture
+export const uploadProfilePicture = async (req, res) => {
+  const { accountid } = req.body;
+  
+  if (!accountid) {
+    return res.status(400).json({ error: 'Account ID is required' });
+  }
+  
+  if (!req.file) {
+    return res.status(400).json({ error: 'No image file provided' });
+  }
+  
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+    
+    // Check account type to determine which table to use
+    const accountCheck = await client.query(
+      'SELECT accounttype FROM accounts WHERE accountid = $1',
+      [accountid]
+    );
+    
+    if (accountCheck.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Account not found' });
+    }
+    
+    const accountType = accountCheck.rows[0].accounttype;
+    const isIndividualAccount = accountType === 'PERSONAL' || accountType === 'AGENT';
+    const isBusinessAccount = accountType === 'MERCHANT' || accountType === 'BILLER';
+    
+    if (!isIndividualAccount && !isBusinessAccount) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Invalid account type for profile pictures' });
+    }
+    
+    const imageBuffer = req.file.buffer;
+    const mimeType = req.file.mimetype;
+    const filename = req.file.originalname;
+    
+    let result;
+    let tableName = isIndividualAccount ? 'individualinfo' : 'institutionalinfo';
+    
+    // Check if record exists
+    const recordCheck = await client.query(
+      `SELECT accountid FROM ${tableName} WHERE accountid = $1`,
+      [accountid]
+    );
+    
+    if (recordCheck.rowCount === 0) {
+      // Create new record with profile picture
+      result = await client.query(
+        `INSERT INTO ${tableName} (accountid, profile_picture, profile_picture_mime_type, profile_picture_filename, profile_picture_upload_date)
+         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+         RETURNING accountid`,
+        [accountid, imageBuffer, mimeType, filename]
+      );
+    } else {
+      // Update existing record
+      result = await client.query(
+        `UPDATE ${tableName} 
+         SET profile_picture = $2, 
+             profile_picture_mime_type = $3, 
+             profile_picture_filename = $4, 
+             profile_picture_upload_date = CURRENT_TIMESTAMP
+         WHERE accountid = $1
+         RETURNING accountid`,
+        [accountid, imageBuffer, mimeType, filename]
+      );
+    }
+    
+    if (result.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(500).json({ error: 'Failed to save profile picture' });
+    }
+    
+    await client.query('COMMIT');
+    
+    res.status(200).json({
+      message: 'Profile picture uploaded successfully',
+      filename: filename,
+      uploadDate: new Date().toISOString()
+    });
+    
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Profile picture upload error:', err);
+    
+    if (err.message === 'Only image files are allowed') {
+      return res.status(400).json({ error: 'Only image files are allowed' });
+    }
+    
+    res.status(500).json({ error: 'Failed to upload profile picture' });
+  } finally {
+    client.release();
+  }
+};
+
+// Get profile picture
+export const getProfilePicture = async (req, res) => {
+  const { accountid } = req.params;
+  
+  if (!accountid) {
+    return res.status(400).json({ error: 'Account ID is required' });
+  }
+  
+  try {
+    // First check account type to determine which table to query
+    const accountCheck = await pool.query(
+      'SELECT accounttype FROM accounts WHERE accountid = $1',
+      [accountid]
+    );
+    
+    if (accountCheck.rowCount === 0) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+    
+    const accountType = accountCheck.rows[0].accounttype;
+    const isIndividualAccount = accountType === 'PERSONAL' || accountType === 'AGENT';
+    const isBusinessAccount = accountType === 'MERCHANT' || accountType === 'BILLER';
+    
+    if (!isIndividualAccount && !isBusinessAccount) {
+      return res.status(400).json({ error: 'Invalid account type for profile pictures' });
+    }
+    
+    const tableName = isIndividualAccount ? 'individualinfo' : 'institutionalinfo';
+    
+    const result = await pool.query(
+      `SELECT profile_picture, profile_picture_mime_type, profile_picture_filename 
+       FROM ${tableName} 
+       WHERE accountid = $1 AND profile_picture IS NOT NULL`,
+      [accountid]
+    );
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Profile picture not found' });
+    }
+    
+    const { profile_picture, profile_picture_mime_type, profile_picture_filename } = result.rows[0];
+    
+    // Set appropriate headers
+    res.set({
+      'Content-Type': profile_picture_mime_type,
+      'Content-Length': profile_picture.length,
+      'Content-Disposition': `inline; filename="${profile_picture_filename}"`
+    });
+    
+    // Send the image buffer
+    res.send(profile_picture);
+    
+  } catch (err) {
+    console.error('Get profile picture error:', err);
+    res.status(500).json({ error: 'Failed to retrieve profile picture' });
+  }
+};
+
+// Delete profile picture
+export const deleteProfilePicture = async (req, res) => {
+  const { accountid } = req.body;
+  
+  if (!accountid) {
+    return res.status(400).json({ error: 'Account ID is required' });
+  }
+  
+  try {
+    // First check account type to determine which table to update
+    const accountCheck = await pool.query(
+      'SELECT accounttype FROM accounts WHERE accountid = $1',
+      [accountid]
+    );
+    
+    if (accountCheck.rowCount === 0) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+    
+    const accountType = accountCheck.rows[0].accounttype;
+    const isIndividualAccount = accountType === 'PERSONAL' || accountType === 'AGENT';
+    const isBusinessAccount = accountType === 'MERCHANT' || accountType === 'BILLER';
+    
+    if (!isIndividualAccount && !isBusinessAccount) {
+      return res.status(400).json({ error: 'Invalid account type for profile pictures' });
+    }
+    
+    const tableName = isIndividualAccount ? 'individualinfo' : 'institutionalinfo';
+    
+    const result = await pool.query(
+      `UPDATE ${tableName} 
+       SET profile_picture = NULL, 
+           profile_picture_mime_type = NULL, 
+           profile_picture_filename = NULL, 
+           profile_picture_upload_date = NULL
+       WHERE accountid = $1 AND profile_picture IS NOT NULL
+       RETURNING accountid`,
+      [accountid]
+    );
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Profile picture not found' });
+    }
+    
+    res.status(200).json({ message: 'Profile picture deleted successfully' });
+    
+  } catch (err) {
+    console.error('Delete profile picture error:', err);
+    res.status(500).json({ error: 'Failed to delete profile picture' });
   }
 };

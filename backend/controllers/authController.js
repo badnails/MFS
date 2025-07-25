@@ -284,7 +284,7 @@ export const checkPhoneNumber = async (req, res) => {
 
   // Basic phone validation - remove spaces, dashes, parentheses
   const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
-  const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+  const phoneRegex = /^[\+]?[0-9][\d]{0,15}$/;
   if (!phoneRegex.test(cleanPhone)) {
     return res
       .status(400)
@@ -493,5 +493,44 @@ export const completeAccountSetup = async (req, res) => {
     res.status(500).json({ error: 'Failed to complete account setup' });
   } finally {
     client.release();
+  }
+};
+
+// Add TOTP regeneration endpoint
+export const regenerateTOTP = async (req, res) => {
+  const { accountid } = req.body;
+
+  if (!accountid) {
+    return res.status(400).json({ error: 'Account ID is required' });
+  }
+
+  try {
+    // Generate new TOTP secret
+    const totpkey = otplib.authenticator.generateSecret();
+
+    // Update the account with new TOTP secret
+    const result = await pool.query(
+      "UPDATE accounts SET totpcode = $1 WHERE accountid = $2 RETURNING username",
+      [totpkey, accountid]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+
+    const username = result.rows[0].username;
+
+    // Generate QR URI
+    const otpURI = otplib.authenticator.keyuri(username, "MFS", totpkey);
+    const qrURI = await qrcode.toDataURL(otpURI);
+
+    return res.status(200).json({ 
+      qrURI, 
+      totpkey,
+      message: 'TOTP regenerated successfully'
+    });
+  } catch (err) {
+    console.error("TOTP regeneration failed:", err);
+    return res.status(500).json({ error: "Failed to regenerate TOTP" });
   }
 };

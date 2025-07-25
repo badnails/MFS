@@ -1,8 +1,8 @@
-// src/components/accountDetails.jsx
+// src/components/profile/PersonalDashboardProfile.jsx
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import ProfilePictureDisplay from './profile/ProfilePictureDisplay';
+import { useAuth } from '../../context/AuthContext';
+import ProfilePictureDisplay from './ProfilePictureDisplay';
+import ProfilePictureUpload from './ProfilePictureUpload';
 import { 
   User, 
   Mail, 
@@ -10,19 +10,21 @@ import {
   MapPin, 
   Calendar, 
   Globe, 
-  Building2,
-  CreditCard,
+  Edit3, 
   Shield,
-  ArrowLeft,
-  Edit3
+  CreditCard,
+  Key
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-const AccountDetails = () => {
+const PersonalDashboardProfile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showPictureUpload, setShowPictureUpload] = useState(false);
+  const [pictureRefreshTrigger, setPictureRefreshTrigger] = useState(0);
 
   useEffect(() => {
     fetchProfileData();
@@ -50,6 +52,20 @@ const AccountDetails = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePictureUploadSuccess = () => {
+    setPictureRefreshTrigger(prev => prev + 1);
+    setShowPictureUpload(false);
+  };
+
+  const handlePictureDeleteSuccess = () => {
+    setPictureRefreshTrigger(prev => prev + 1);
+    setShowPictureUpload(false);
+  };
+
+  const handleEditPicture = () => {
+    setShowPictureUpload(true);
   };
 
   const formatDate = (dateString) => {
@@ -91,31 +107,35 @@ const AccountDetails = () => {
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back to Dashboard</span>
-            </button>
-            <h1 className="text-3xl font-bold text-gray-900">Account Details</h1>
-            <p className="mt-2 text-gray-600">View and manage your account information</p>
-          </div>
-          <button
-            onClick={() => navigate('/profile')}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            <Edit3 className="h-4 w-4" />
-            <span>Edit Profile</span>
-          </button>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Profile Dashboard</h1>
+          <p className="mt-2 text-gray-600">Manage your account information and settings</p>
         </div>
 
-        {/* Account Information Card */}
+        {/* Account Overview Card */}
         <div className="bg-white rounded-lg shadow mb-6 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Account Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-gray-900">Account Overview</h2>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+              profileData?.account?.accountstatus === 'ACTIVE' 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-red-100 text-red-800'
+            }`}>
+              {profileData?.account?.accountstatus || 'Unknown'}
+            </span>
+          </div>
+          
+          {/* Profile Picture Section - For All Account Types */}
+          <div className="flex items-center justify-center mb-6">
+            <ProfilePictureDisplay
+              size="xlarge"
+              showEditButton={true}
+              onEditClick={handleEditPicture}
+              refreshTrigger={pictureRefreshTrigger}
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-blue-100 rounded-lg">
                 <User className="h-5 w-5 text-blue-600" />
@@ -125,7 +145,6 @@ const AccountDetails = () => {
                 <p className="font-medium">{profileData?.account?.username || 'Not set'}</p>
               </div>
             </div>
-            
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-green-100 rounded-lg">
                 <CreditCard className="h-5 w-5 text-green-600" />
@@ -135,7 +154,6 @@ const AccountDetails = () => {
                 <p className="font-medium">{profileData?.account?.accountid || 'Not set'}</p>
               </div>
             </div>
-            
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-purple-100 rounded-lg">
                 <Shield className="h-5 w-5 text-purple-600" />
@@ -145,42 +163,28 @@ const AccountDetails = () => {
                 <p className="font-medium capitalize">{user?.accounttype?.toLowerCase() || 'Not set'}</p>
               </div>
             </div>
-            
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Shield className="h-5 w-5 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Status</p>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  profileData?.account?.accountstatus === 'ACTIVE' 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {profileData?.account?.accountstatus || 'Unknown'}
-                </span>
-              </div>
-            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Personal/Business Information */}
+          {/* Personal/Institutional Information Card */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {isIndividualAccount ? 'Personal Information' : 'Business Information'}
-            </h3>
-            
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {isIndividualAccount ? 'Personal Information' : 'Business Information'}
+              </h3>
+              <button
+                onClick={() => navigate(isIndividualAccount ? '/profile/personal-info' : '/profile/institutional-info')}
+                className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-sm font-medium"
+              >
+                <Edit3 className="h-4 w-4" />
+                <span>Edit</span>
+              </button>
+            </div>
+
             {isIndividualAccount ? (
+              /* Personal Information */
               <div className="space-y-4">
-                {/* Profile Picture for Individual Accounts */}
-                <div className="flex justify-center mb-6">
-                  <ProfilePictureDisplay
-                    size="large"
-                    showEditButton={false}
-                  />
-                </div>
-                
                 <div className="flex items-center space-x-3">
                   <User className="h-5 w-5 text-gray-400" />
                   <div>
@@ -193,7 +197,6 @@ const AccountDetails = () => {
                     </p>
                   </div>
                 </div>
-                
                 <div className="flex items-center space-x-3">
                   <Calendar className="h-5 w-5 text-gray-400" />
                   <div>
@@ -201,7 +204,6 @@ const AccountDetails = () => {
                     <p className="font-medium">{formatDate(profileData?.individual?.dateofbirth)}</p>
                   </div>
                 </div>
-                
                 <div className="flex items-center space-x-3">
                   <User className="h-5 w-5 text-gray-400" />
                   <div>
@@ -211,7 +213,6 @@ const AccountDetails = () => {
                     </p>
                   </div>
                 </div>
-                
                 <div className="flex items-center space-x-3">
                   <Globe className="h-5 w-5 text-gray-400" />
                   <div>
@@ -221,23 +222,15 @@ const AccountDetails = () => {
                 </div>
               </div>
             ) : (
+              /* Institutional Information */
               <div className="space-y-4">
-                {/* Profile Picture for Business Accounts */}
-                <div className="flex justify-center mb-6">
-                  <ProfilePictureDisplay
-                    size="large"
-                    showEditButton={false}
-                  />
-                </div>
-                
                 <div className="flex items-center space-x-3">
-                  <Building2 className="h-5 w-5 text-gray-400" />
+                  <User className="h-5 w-5 text-gray-400" />
                   <div>
                     <p className="text-sm text-gray-500">Business Name</p>
                     <p className="font-medium">{profileData?.institutional?.merchantname || 'Not set'}</p>
                   </div>
                 </div>
-                
                 <div className="flex items-center space-x-3">
                   <Globe className="h-5 w-5 text-gray-400" />
                   <div>
@@ -260,9 +253,18 @@ const AccountDetails = () => {
             )}
           </div>
 
-          {/* Contact Information */}
+          {/* Contact Information Card */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Contact Information</h3>
+              <button
+                onClick={() => navigate('/profile/contact-info')}
+                className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-sm font-medium"
+              >
+                <Edit3 className="h-4 w-4" />
+                <span>Edit</span>
+              </button>
+            </div>
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <Mail className="h-5 w-5 text-gray-400" />
@@ -271,7 +273,6 @@ const AccountDetails = () => {
                   <p className="font-medium">{profileData?.contact?.email || 'Not set'}</p>
                 </div>
               </div>
-              
               <div className="flex items-center space-x-3">
                 <Phone className="h-5 w-5 text-gray-400" />
                 <div>
@@ -279,7 +280,6 @@ const AccountDetails = () => {
                   <p className="font-medium">{profileData?.contact?.phonenumber || 'Not set'}</p>
                 </div>
               </div>
-              
               <div className="flex items-start space-x-3">
                 <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
                 <div>
@@ -306,9 +306,56 @@ const AccountDetails = () => {
             </div>
           </div>
         </div>
+
+        {/* Security Settings Card */}
+        <div className="bg-white rounded-lg shadow p-6 mt-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Security Settings</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              onClick={() => navigate('/profile/totp-recovery')}
+              className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <Key className="h-5 w-5 text-orange-600" />
+              </div>
+              <div className="text-left">
+                <p className="font-medium text-gray-900">TOTP Recovery</p>
+                <p className="text-sm text-gray-500">Regenerate your authenticator QR code</p>
+              </div>
+            </button>
+            <div className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Shield className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">Two-Factor Authentication</p>
+                <p className="text-sm text-gray-500">Enabled</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-8 flex justify-center">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+          >
+            Back to Dashboard
+          </button>
+        </div>
       </div>
+      
+      {/* Profile Picture Upload Modal */}
+      <ProfilePictureUpload
+        currentPicture={isIndividualAccount ? profileData?.individual?.has_profile_picture : profileData?.institutional?.has_profile_picture}
+        onUploadSuccess={handlePictureUploadSuccess}
+        onDeleteSuccess={handlePictureDeleteSuccess}
+        isOpen={showPictureUpload}
+        onClose={() => setShowPictureUpload(false)}
+      />
     </div>
   );
 };
 
-export default AccountDetails;
+export default PersonalDashboardProfile;
