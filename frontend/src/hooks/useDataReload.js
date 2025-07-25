@@ -1,5 +1,5 @@
 // frontend/src/hooks/useDataReload.js
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext, createContext } from 'react';
 
 const listeners = new Set();
 
@@ -21,4 +21,15 @@ export const useDataReload = () => {
   }, []);
 
   return reloadKey;
+};
+
+// Context for sharing reload key
+export const DataReloadContext = createContext();
+
+export const useDataReloadContext = () => {
+  const context = useContext(DataReloadContext);
+  if (context === undefined) {
+    throw new Error('useDataReloadContext must be used within a DataReloadProvider');
+  }
+  return context;
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useDataReloadContext } from '../../hooks/useDataReload';
 import { RefreshCw, Plus, Receipt } from 'lucide-react';
 import CreateBillBatch from './CreateBillBatch';
 import AssignBill from './AssignBill';
@@ -9,13 +10,12 @@ import { billerSidebarConfig } from '../../config/sidebarConfigs';
 import { Wallet } from 'lucide-react';
 import axios from 'axios';
 
-const BillerDashboard = ({ reloadKey }) => {
+const BillerDashboardContent = ({ activeView, activeModal, setActiveModal }) => {
   const { user } = useAuth();
+  const reloadKey = useDataReloadContext();
   const [billerData, setBillerData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeModal, setActiveModal] = useState(null);
-  const [activeView, setActiveView] = useState('dashboard');
   const [todayStats, setTodayStats] = useState({
     totalBills: 0,
     assignedBills: 0,
@@ -44,14 +44,6 @@ const BillerDashboard = ({ reloadKey }) => {
 
     fetchBillerData();
   }, [reloadKey]);
-
-  const handleSidebarItemClick = (itemId) => {
-    setActiveView(itemId);
-    if (['assign-bill', 'create-batch'].includes(itemId)) {
-      setActiveModal(itemId);
-      setActiveView('dashboard'); // Keep dashboard view when opening modals
-    }
-  };
 
   const openModal = (id) => setActiveModal(id);
   const closeModal = () => {
@@ -208,6 +200,29 @@ const BillerDashboard = ({ reloadKey }) => {
   );
 
   return (
+    <>
+      {renderMainContent()}
+
+      {/* Modals */}
+      {activeModal === 'assign-bill' && <AssignBill onClose={closeModal} />}
+      {activeModal === 'create-batch' && <CreateBillBatch onClose={closeModal} />}
+    </>
+  );
+};
+
+const BillerDashboard = () => {
+  const [activeModal, setActiveModal] = useState(null);
+  const [activeView, setActiveView] = useState('dashboard');
+
+  const handleSidebarItemClick = (itemId) => {
+    setActiveView(itemId);
+    if (['assign-bill', 'create-batch'].includes(itemId)) {
+      setActiveModal(itemId);
+      setActiveView('dashboard'); // Keep dashboard view when opening modals
+    }
+  };
+
+  return (
     <SidebarLayout
       menuItems={billerSidebarConfig.menuItems}
       brandName={billerSidebarConfig.brandName}
@@ -215,11 +230,11 @@ const BillerDashboard = ({ reloadKey }) => {
       onMenuItemClick={handleSidebarItemClick}
       activeMenuItem={activeView}
     >
-      {renderMainContent()}
-
-      {/* Modals */}
-      {activeModal === 'assign-bill' && <AssignBill onClose={closeModal} />}
-      {activeModal === 'create-batch' && <CreateBillBatch onClose={closeModal} />}
+      <BillerDashboardContent 
+        activeView={activeView}
+        activeModal={activeModal}
+        setActiveModal={setActiveModal}
+      />
     </SidebarLayout>
   );
 };

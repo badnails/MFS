@@ -1,8 +1,8 @@
 import React from 'react';
-import { useDataReload } from '../hooks/useDataReload';
+import { useDataReload, DataReloadContext } from '../../hooks/useDataReload';
 import { LogOut, User } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import NotificationCenter from './NotificationCenter';
+import { useAuth } from '../../context/AuthContext';
+import NotificationCenter from '../common/NotificationCenter';
 
 
 const DashboardLayout = ({ children }) => {
@@ -41,7 +41,9 @@ const DashboardLayout = ({ children }) => {
 
       {/* Main Content */}
       <main className="relative z-10 max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {React.cloneElement(children, { reloadKey })}
+        <DataReloadContext.Provider value={reloadKey}>
+          {children}
+        </DataReloadContext.Provider>
       </main>
     </div>
   );

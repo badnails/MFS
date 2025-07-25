@@ -5,7 +5,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './components/Login';
 import OTPVerification from './components/OTPVerification';
 import Signup from './components/Signup';
-import Dashboard from './components/Dashboard';
+import Dashboard from './components/common/Dashboard';
 import PaymentComponent from './components/payment/PaymentComponent';
 import PaymentCompletion from './components/payment/PaymentCompletion';
 import { AuthProvider, useAuth } from './context/AuthContext';

@@ -1,7 +1,8 @@
 // src/components/PersonalDashboard.jsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
+import { useDataReloadContext } from '../../hooks/useDataReload';
 import {
   Wallet,
   RefreshCw,
@@ -10,24 +11,20 @@ import {
   Store,
   Receipt
 } from 'lucide-react';
-import SendMoney from './personal/SendMoney';
-import CashOut from './personal/CashOut';
-import MerchantPayment from './personal/MerchantPayment';
-import BillPayment from './personal/BillPayment';
-import TransactionHistory from './common/TransactionHistory';
-import SidebarLayout from './layouts/SidebarLayout';
-import { personalSidebarConfig } from '../config/sidebarConfigs';
+import SendMoney from './SendMoney';
+import CashOut from './CashOut';
+import MerchantPayment from './MerchantPayment';
+import BillPayment from './BillPayment';
+import TransactionHistory from '../common/TransactionHistory';
+import SidebarLayout from '../layouts/SidebarLayout';
+import { personalSidebarConfig } from '../../config/sidebarConfigs';
 
-const PersonalDashboard = ({ reloadKey }) => {
+const PersonalDashboardContent = ({ activeView, activeModal, setActiveModal }) => {
   const { user } = useAuth();
+  const reloadKey = useDataReloadContext();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeModal, setActiveModal] = useState(null);
-  const [activeView, setActiveView] = useState('dashboard');
-
-  // Use sidebar configuration
-  const sidebarMenuItems = personalSidebarConfig.menuItems;
 
   const fetchDashboardData = async () => {
     try {
@@ -88,14 +85,6 @@ const PersonalDashboard = ({ reloadKey }) => {
       hoverColor: 'hover:bg-orange-600'
     }
   ];
-
-  const handleSidebarItemClick = (itemId) => {
-    setActiveView(itemId);
-    if (['send-money', 'cash-out', 'merchant-payment', 'bill-payment'].includes(itemId)) {
-      setActiveModal(itemId);
-      setActiveView('dashboard'); // Keep dashboard view when opening modals
-    }
-  };
 
   const openModal = (modalType) => {
     setActiveModal(modalType);
@@ -237,13 +226,7 @@ const PersonalDashboard = ({ reloadKey }) => {
   }
 
   return (
-    <SidebarLayout
-      menuItems={sidebarMenuItems}
-      brandName={personalSidebarConfig.brandName}
-      brandIcon={Wallet}
-      onMenuItemClick={handleSidebarItemClick}
-      activeMenuItem={activeView}
-    >
+    <>
       {renderMainContent()}
 
       {/* Modals */}
@@ -251,6 +234,35 @@ const PersonalDashboard = ({ reloadKey }) => {
       {activeModal === 'cash-out' && <CashOut onClose={closeModal} />}
       {activeModal === 'merchant-payment' && <MerchantPayment onClose={closeModal} />}
       {activeModal === 'bill-payment' && <BillPayment onClose={closeModal} />}
+    </>
+  );
+};
+
+const PersonalDashboard = () => {
+  const [activeModal, setActiveModal] = useState(null);
+  const [activeView, setActiveView] = useState('dashboard');
+
+  const handleSidebarItemClick = (itemId) => {
+    setActiveView(itemId);
+    if (['send-money', 'cash-out', 'merchant-payment', 'bill-payment'].includes(itemId)) {
+      setActiveModal(itemId);
+      setActiveView('dashboard'); // Keep dashboard view when opening modals
+    }
+  };
+
+  return (
+    <SidebarLayout
+      menuItems={personalSidebarConfig.menuItems}
+      brandName={personalSidebarConfig.brandName}
+      brandIcon={personalSidebarConfig.brandIcon}
+      onMenuItemClick={handleSidebarItemClick}
+      activeMenuItem={activeView}
+    >
+      <PersonalDashboardContent 
+        activeView={activeView}
+        activeModal={activeModal}
+        setActiveModal={setActiveModal}
+      />
     </SidebarLayout>
   );
 };

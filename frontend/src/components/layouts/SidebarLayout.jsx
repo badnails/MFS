@@ -1,14 +1,15 @@
 // src/components/layouts/SidebarLayout.jsx
-import React from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { LogOut, User } from 'lucide-react';
-import NotificationCenter from '../NotificationCenter';
-import Sidebar from '../common/Sidebar';
-import { useSidebar } from '../../hooks/useSidebar';
+import React from "react";
+import { useAuth } from "../../context/AuthContext";
+import { useDataReload, DataReloadContext } from "../../hooks/useDataReload";
+import { LogOut, User } from "lucide-react";
+import NotificationCenter from "../common/NotificationCenter";
+import Sidebar from "../common/Sidebar";
+import { useSidebar } from "../../hooks/useSidebar";
 
-const SidebarLayout = ({ 
-  children, 
-  menuItems = [], 
+const SidebarLayout = ({
+  children,
+  menuItems = [],
   brandName,
   brandIcon,
   onMenuItemClick,
@@ -16,13 +17,14 @@ const SidebarLayout = ({
   showHeader = true,
   headerTitle,
   headerActions,
-  customHeader
+  customHeader,
 }) => {
   const { user, logout } = useAuth();
   const { collapsed, toggleSidebar } = useSidebar();
 
   const defaultHeaderTitle = `${user?.accounttype} Dashboard`;
   const displayTitle = headerTitle || defaultHeaderTitle;
+  const reloadKey = useDataReload();
 
   const defaultHeaderActions = (
     <>
@@ -55,7 +57,11 @@ const SidebarLayout = ({
       />
 
       {/* Main Content Area */}
-      <div className={`flex-1 transition-all duration-300 relative z-10 ${collapsed ? 'ml-16' : 'ml-64'}`}>
+      <div
+        className={`flex-1 transition-all duration-300 relative z-10 ${
+          collapsed ? "ml-16" : "ml-64"
+        }`}
+      >
         {/* Header */}
         {showHeader && (
           <header className="bg-white shadow-sm border-b border-gray-200 relative z-20">
@@ -78,7 +84,9 @@ const SidebarLayout = ({
 
         {/* Page Content */}
         <main className="p-6">
-          {children}
+          <DataReloadContext.Provider value={reloadKey}>
+            {children}
+          </DataReloadContext.Provider>
         </main>
       </div>
     </div>

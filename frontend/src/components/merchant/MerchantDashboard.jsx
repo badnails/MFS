@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useDataReloadContext } from '../../hooks/useDataReload';
 import { RefreshCw, Plus, Receipt } from 'lucide-react';
 import CreateBill from './CreateBill';
-import TransactionHistory from './TransactionHistory';
+import TransactionHistory from '../common/TransactionHistory';
 import PendingBills from './PendingBills';
 import SidebarLayout from '../layouts/SidebarLayout';
 import { merchantSidebarConfig } from '../../config/sidebarConfigs';
 import { Wallet } from 'lucide-react';
 import axios from 'axios';
 
-const MerchantDashboard = ({ reloadKey }) => {
+const MerchantDashboardContent = ({ activeView, activeModal, setActiveModal, setActiveView }) => {
   const { user } = useAuth();
+  const reloadKey = useDataReloadContext();
   const [merchantData, setMerchantData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeModal, setActiveModal] = useState(null);
-  const [activeView, setActiveView] = useState('dashboard');
   const [todayStats, setTodayStats] = useState({
     totalBills: 0,
     paidBills: 0,
@@ -44,14 +44,6 @@ const MerchantDashboard = ({ reloadKey }) => {
 
     fetchMerchantData();
   }, [reloadKey]);
-
-  const handleSidebarItemClick = (itemId) => {
-    setActiveView(itemId);
-    if (['create-bill'].includes(itemId)) {
-      setActiveModal(itemId);
-      setActiveView('dashboard'); // Keep dashboard view when opening modals
-    }
-  };
 
   const openModal = (id) => setActiveModal(id);
   const closeModal = () => {
@@ -213,6 +205,28 @@ const MerchantDashboard = ({ reloadKey }) => {
   );
 
   return (
+    <>
+      {renderMainContent()}
+
+      {/* Modals */}
+      {activeModal === 'create-bill' && <CreateBill onClose={closeModal} />}
+    </>
+  );
+};
+
+const MerchantDashboard = () => {
+  const [activeModal, setActiveModal] = useState(null);
+  const [activeView, setActiveView] = useState('dashboard');
+
+  const handleSidebarItemClick = (itemId) => {
+    setActiveView(itemId);
+    if (['create-bill'].includes(itemId)) {
+      setActiveModal(itemId);
+      setActiveView('dashboard'); // Keep dashboard view when opening modals
+    }
+  };
+
+  return (
     <SidebarLayout
       menuItems={merchantSidebarConfig.menuItems}
       brandName={merchantSidebarConfig.brandName}
@@ -220,10 +234,12 @@ const MerchantDashboard = ({ reloadKey }) => {
       onMenuItemClick={handleSidebarItemClick}
       activeMenuItem={activeView}
     >
-      {renderMainContent()}
-
-      {/* Modals */}
-      {activeModal === 'create-bill' && <CreateBill onClose={closeModal} />}
+      <MerchantDashboardContent 
+        activeView={activeView}
+        activeModal={activeModal}
+        setActiveModal={setActiveModal}
+        setActiveView={setActiveView}
+      />
     </SidebarLayout>
   );
 };

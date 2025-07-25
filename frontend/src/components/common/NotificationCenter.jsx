@@ -1,9 +1,9 @@
 // components/NotificationCenter.jsx
 import React, { useState, useEffect } from 'react';
 import { Bell, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
-import { useNotifications } from '../hooks/useNotifications.js';
-import { useAuth } from '../context/AuthContext.jsx';
-import socketService from '../services/socketService.js';
+import { useNotifications } from '../../hooks/useNotifications.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+import socketService from '../../services/socketService.js';
 
 const NotificationCenter = () => {
   const { user } = useAuth();

@@ -1,12 +1,11 @@
 // src/components/Dashboard.jsx
 import React from 'react';
-import { useAuth } from '../context/AuthContext';
-import PersonalDashboard from './PersonalDashboard';
-import AdminDashboard from './AdminDashboard';
-import AgentDashboard from './agent/AgentDashboard';
-import MerchantDashboard from './merchant/MerchantDashboard';
-import DashboardLayout from './DashboardLayout';
-import BillerDashboard from './biller/BillerDashboard';
+import { useAuth } from '../../context/AuthContext';
+import PersonalDashboard from '../personal/PersonalDashboard';
+import AdminDashboard from '../admin/AdminDashboard';
+import AgentDashboard from '../agent/AgentDashboard';
+import MerchantDashboard from '../merchant/MerchantDashboard';
+import BillerDashboard from '../biller/BillerDashboard';
 
 const Dashboard = () => {
   const { user } = useAuth();

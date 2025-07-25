@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useDataReloadContext } from '../../hooks/useDataReload';
 import { RefreshCw, Plus, Minus } from 'lucide-react';
 import CashIn from './CashIn';
 import CashOut from './CashOut';
@@ -9,13 +10,12 @@ import { agentSidebarConfig } from '../../config/sidebarConfigs';
 import { Wallet } from 'lucide-react';
 import axios from 'axios';
 
-const AgentDashboard = ({ reloadKey }) => {
+const AgentDashboardContent = ({ activeView, activeModal, setActiveModal }) => {
   const { user } = useAuth();
+  const reloadKey = useDataReloadContext();
   const [agentData, setAgentData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeModal, setActiveModal] = useState(null);
-  const [activeView, setActiveView] = useState('dashboard');
   const [todayStats, setTodayStats] = useState({
     cashInCount: 0,
     cashOutCount: 0,
@@ -48,14 +48,6 @@ const AgentDashboard = ({ reloadKey }) => {
 
   const formatCurrency = (amount) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-
-  const handleSidebarItemClick = (itemId) => {
-    setActiveView(itemId);
-    if (['cash-in', 'cash-out'].includes(itemId)) {
-      setActiveModal(itemId);
-      setActiveView('dashboard'); // Keep dashboard view when opening modals
-    }
-  };
 
   const openModal = (modal) => setActiveModal(modal);
   const closeModal = () => {
@@ -226,6 +218,29 @@ const AgentDashboard = ({ reloadKey }) => {
   );
 
   return (
+    <>
+      {renderMainContent()}
+
+      {/* Modals */}
+      {activeModal === 'cash-in' && <CashIn onClose={closeModal} />}
+      {activeModal === 'cash-out' && <CashOut onClose={closeModal} />}
+    </>
+  );
+};
+
+const AgentDashboard = () => {
+  const [activeModal, setActiveModal] = useState(null);
+  const [activeView, setActiveView] = useState('dashboard');
+
+  const handleSidebarItemClick = (itemId) => {
+    setActiveView(itemId);
+    if (['cash-in', 'cash-out'].includes(itemId)) {
+      setActiveModal(itemId);
+      setActiveView('dashboard'); // Keep dashboard view when opening modals
+    }
+  };
+
+  return (
     <SidebarLayout
       menuItems={agentSidebarConfig.menuItems}
       brandName={agentSidebarConfig.brandName}
@@ -233,11 +248,11 @@ const AgentDashboard = ({ reloadKey }) => {
       onMenuItemClick={handleSidebarItemClick}
       activeMenuItem={activeView}
     >
-      {renderMainContent()}
-
-      {/* Modals */}
-      {activeModal === 'cash-in' && <CashIn onClose={closeModal} />}
-      {activeModal === 'cash-out' && <CashOut onClose={closeModal} />}
+      <AgentDashboardContent 
+        activeView={activeView}
+        activeModal={activeModal}
+        setActiveModal={setActiveModal}
+      />
     </SidebarLayout>
   );
 };

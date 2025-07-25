@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import SidebarLayout from './layouts/SidebarLayout';
-import BalanceUpdate from './admin/BalanceUpdate';
-import AccountsManagement from './admin/AccountsManagement';
-import TransactionsView from './admin/TransactionsView';
-import AdminOverview from './admin/AdminOverview';
-import { adminSidebarConfig } from '../config/sidebarConfigs';
+import SidebarLayout from '../layouts/SidebarLayout';
+import BalanceUpdate from './BalanceUpdate';
+import AccountsManagement from './AccountsManagement';
+import TransactionsView from './TransactionsView';
+import AdminOverview from './AdminOverview';
+import { adminSidebarConfig } from '../../config/sidebarConfigs';
 import { Wallet } from 'lucide-react';
 
 const AdminDashboard = () => {
