@@ -19,5 +19,12 @@ router.get('/billbatches/:billerid', authenticateJWT, getBillBatches);
 router.get('/billfields/:batchid', authenticateJWT, getBillFields);
 router.post('/searchbills', authenticateJWT, searchBills);
 router.post('/linkbilltransaction', authenticateJWT, linkBillTransaction);
+router.get('/profileData/:accountid', authenticateJWT, getProfileData);
+router.put('/updateProfile',authenticateJWT, updateProfileField);
+
+// Profile picture routes
+router.post('/uploadProfilePicture', authenticateJWT, uploadMiddleware, uploadProfilePicture);
+router.get('/profilePicture/:accountid', getProfilePicture); // Public endpoint for viewing pictures
+router.delete('/deleteProfilePicture', authenticateJWT, deleteProfilePicture);
 
 export default router;
