@@ -534,3 +534,46 @@ export const regenerateTOTP = async (req, res) => {
     return res.status(500).json({ error: "Failed to regenerate TOTP" });
   }
 };
+
+// Update institution category
+export const updateInstitutionCategory = async (req, res) => {
+  const { accountid, categoryId } = req.body;
+
+  if (!accountid || !categoryId) {
+    return res.status(400).json({ error: 'Account ID and category ID are required' });
+  }
+
+  try {
+    // First verify the category exists and is a leaf node
+    const categoryCheck = await pool.query(
+      "SELECT is_leaf FROM institution_category WHERE id = $1",
+      [categoryId]
+    );
+
+    if (categoryCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+
+    if (!categoryCheck.rows[0].is_leaf) {
+      return res.status(400).json({ error: 'Only leaf categories can be selected' });
+    }
+
+    // Update the institution category
+    const result = await pool.query(
+      "UPDATE institutionalinfo SET institution_category_id = $1 WHERE accountid = $2 RETURNING *",
+      [categoryId, accountid]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Institution info not found' });
+    }
+
+    return res.status(200).json({ 
+      message: 'Institution category updated successfully',
+      institutionInfo: result.rows[0]
+    });
+  } catch (err) {
+    console.error("Institution category update failed:", err);
+    return res.status(500).json({ error: "Failed to update institution category" });
+  }
+};

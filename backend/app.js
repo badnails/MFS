@@ -22,6 +22,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import agentRoutes from './routes/agentRoutes.js';
 import merchantRoutes from './routes/merchantRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
 
 // Setup
 const __filename = fileURLToPath(import.meta.url);
@@ -50,6 +51,7 @@ app.use('/admin', adminRoutes);
 app.use('/agent', agentRoutes);
 app.use('/merchant', merchantRoutes);
 app.use('/notifications', notificationRoutes);
+app.use('/api', categoryRoutes);
 
 
 // 404 fallback
