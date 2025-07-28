@@ -1,8 +1,9 @@
 // src/components/payment/PaymentComponent.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { X, DollarSign, CreditCard, AlertCircle, Loader2, ChartNoAxesColumnDecreasing } from "lucide-react";
 //import { useAuth } from "../../context/AuthContext";
+import GeneralPopup from '../common/GeneralPopup';
 import axios from "axios";
 
 const PaymentComponent = () => {
@@ -18,28 +19,68 @@ const PaymentComponent = () => {
   const [balanceLoading, setBalanceLoading] = useState(true);
   const [fee, setFee] = useState(0);
   const [feeLoading, setFeeLoading] = useState(false);
+  const [showStatusErrorPopup, setShowStatusErrorPopup] = useState(false);
+  const [statusErrorMessage, setStatusErrorMessage] = useState("");
   // Fetch fee whenever amount or paymentType changes
 
-  const paymentTypeMap = {
+  const paymentTypeMap = useMemo(() => ({
     "send-money": "SEND_MONEY",
     "cash-out": "CASH_OUT",
     "merchant-payment": "PAYMENT",
     "bill-payment": "BILL_PAYMENT",
     "cash-in": "CASH_IN"
-  };
+  }), []);
 
   // Get payment details from navigation state
-  const { recipientId, recipientName, paymentType, description, amount:initialAmount, billId } =
+  const { recipientId, recipientName, paymentType, description, amount:initialAmount, billId, transactionId } =
     location.state || {};
 
+  // Additional state for transaction-based payments
+  const [transactionDetails, setTransactionDetails] = useState(null);
+  const [transactionLoading, setTransactionLoading] = useState(false);
+  const [isExistingTransaction, setIsExistingTransaction] = useState(false);
+
   useEffect(() => {
-    if (!recipientId || !paymentType) {
-      console.log("PaymentComponent: recipientID or paymentType missing");
+    // Function to fetch transaction details for existing transactions
+    const fetchTransactionDetails = async () => {
+      try {
+        setTransactionLoading(true);
+        setError("");
+        
+        const response = await axios.get(`/transaction/details/${transactionId}`);
+        const details = response.data.transactionDetails;
+        
+        // Validate transaction status
+        if (details.status !== 'PENDING') {
+          setStatusErrorMessage(`Transaction is ${details.status.toLowerCase()} and cannot be processed`);
+          setShowStatusErrorPopup(true);
+          return;
+        }
+        
+        // Set up transaction details for payment
+        setTransactionDetails(details);
+        setIsExistingTransaction(true);
+        setAmount(details.subamount.toString());
+        setFee(details.feeamount || 0);
+        
+      } catch (err) {
+        console.error("Failed to fetch transaction details:", err);
+        setError(err.response?.data?.message || "Failed to load transaction details");
+      } finally {
+        setTransactionLoading(false);
+      }
+    };
+
+    // If we have a transactionId, fetch transaction details instead of using navigation state
+    if (transactionId) {
+      fetchTransactionDetails();
+    } else if (!recipientId || !paymentType) {
+      console.log("PaymentComponent: recipientID or paymentType missing and no transactionId");
       navigate("/dashboard");
       return;
     }
     fetchUserBalance();
-  }, [recipientId, paymentType, navigate]);
+  }, [recipientId, paymentType, transactionId, navigate]);
   
   useEffect(() => {
     if (initialAmount) {
@@ -66,8 +107,12 @@ const PaymentComponent = () => {
         setFeeLoading(false);
       }
     };
-    fetchFee();
-  }, [amount, paymentType]);
+    
+    // Don't fetch fees for existing transactions (they already have fees calculated)
+    if (!isExistingTransaction) {
+      fetchFee();
+    }
+  }, [amount, paymentType, isExistingTransaction, paymentTypeMap]);
 
   const fetchUserBalance = async () => {
     try {
@@ -115,40 +160,48 @@ const PaymentComponent = () => {
 
     setLoading(true);
     try {
-      // Use new initiate endpoint
-      const response = await axios.post("/transaction/initiate", {
-        recipientId,
-        subamount,
-        type: paymentTypeMap[paymentType],
-        feeamount
-      });
+      let finalTransactionId;
 
-      //console.log(response.data);
-      const transactionId = response.data.transactionid;
-      //console.log(transactionId);
+      if (isExistingTransaction && transactionId) {
+        // Process existing transaction
+        await axios.post("/transaction/finalize-transaction", {
+          transactionId: transactionId
+        });
+        finalTransactionId = transactionId;
+      } else {
+        // Create new transaction using initiate endpoint
+        const response = await axios.post("/transaction/initiate", {
+          recipientId,
+          subamount,
+          type: paymentTypeMap[paymentType],
+          feeamount
+        });
 
-      // If this is a bill payment, link the transaction to the bill
-      if (paymentType === 'bill-payment' && billId && transactionId) {
-        try {
-          await axios.post("/user/linkbilltransaction", {
-            transactionId,
-            billId
-          });
-        } catch (linkErr) {
-          console.error("Failed to link bill to transaction:", linkErr);
-          setError("Failed to link bill to transaction. Please try again.");
-          return; // Stop the payment flow if linking fails
+        finalTransactionId = response.data.transactionid;
+
+        // If this is a bill payment, link the transaction to the bill
+        if (paymentType === 'bill-payment' && billId && finalTransactionId) {
+          try {
+            await axios.post("/user/linkbilltransaction", {
+              transactionId: finalTransactionId,
+              billId
+            });
+          } catch (linkErr) {
+            console.error("Failed to link bill to transaction:", linkErr);
+            setError("Failed to link bill to transaction. Please try again.");
+            return; // Stop the payment flow if linking fails
+          }
         }
       }
 
       navigate("/payment-pass", {
         state: {
-          transactionId,
+          transactionId: finalTransactionId,
           billId
         }
       });
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to initiate payment");
+      setError(err.response?.data?.message || "Failed to process payment");
     } finally {
       setLoading(false);
     }
@@ -195,13 +248,35 @@ const PaymentComponent = () => {
     }
   };
 
-  if (balanceLoading) {
+  if (balanceLoading || transactionLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading payment details...</p>
+          <p className="text-gray-600">
+            {transactionLoading ? 'Loading transaction details...' : 'Loading payment details...'}
+          </p>
         </div>
+      </div>
+    );
+  }
+
+  // If we have a status error, only show the popup
+  if (showStatusErrorPopup) {
+    return (
+      <div>
+        <GeneralPopup
+          isVisible={showStatusErrorPopup}
+          mode="failure"
+          title="Transaction Not Available"
+          subtitle="Cannot process payment"
+          message={statusErrorMessage}
+          redirectTo="/dashboard"
+          preventBack={true}
+          countdownSeconds={5}
+          autoRedirect={true}
+          onClose={() => setShowStatusErrorPopup(false)}
+        />
       </div>
     );
   }
@@ -237,13 +312,29 @@ const PaymentComponent = () => {
               <div className="flex justify-between">
                 <span className="text-gray-600">To:</span>
                 <span className="font-medium text-right">
-                  {recipientName ? recipientName : recipientId}
+                  {isExistingTransaction && transactionDetails 
+                    ? (transactionDetails.recipient)
+                    : (recipientName ? recipientName : recipientId)
+                  }
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Type:</span>
-                <span className="font-medium">{getPaymentTypeLabel()}</span>
+                <span className="font-medium">
+                  {isExistingTransaction && transactionDetails 
+                    ? transactionDetails.type || 'PAYMENT'
+                    : getPaymentTypeLabel()
+                  }
+                </span>
               </div>
+              {isExistingTransaction && transactionDetails && transactionDetails.transactionid && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Transaction ID:</span>
+                  <span className="font-mono text-sm font-medium">
+                    {transactionDetails.transactionid}
+                  </span>
+                </div>
+              )}
               {description && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Description:</span>
@@ -312,11 +403,11 @@ const PaymentComponent = () => {
                 type="text"
                 value={amount}
                 onChange={handleAmountChange}
-                readOnly={paymentType === 'bill-payment'} // 🔒 Make it read-only only for bill payments
+                readOnly={paymentType === 'bill-payment' || isExistingTransaction} // 🔒 Make it read-only for bill payments and existing transactions
                 className={`w-full pl-10 pr-4 py-4 border rounded-lg focus:outline-none focus:ring-2 text-lg font-medium ${checkSufficientBalance() || !amount
                     ? "border-gray-300 focus:ring-blue-500"
                     : "border-red-300 focus:ring-red-500 bg-red-50"
-                  } ${paymentType === 'bill-payment' ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  } ${(paymentType === 'bill-payment' || isExistingTransaction) ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 placeholder="0.00"
               />
             </div>
@@ -335,6 +426,12 @@ const PaymentComponent = () => {
                   </p>
                 )}
               </div>
+            )}
+            
+            {isExistingTransaction && (
+              <p className="text-blue-600 text-sm mt-1">
+                This transaction amount is locked and cannot be modified.
+              </p>
             )}
           </div>
 

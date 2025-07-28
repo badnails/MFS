@@ -46,7 +46,7 @@ export const merchantSidebarConfig = {
   brandName: "Merchant MFS",
   menuItems: [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'create-bill', label: 'Create Bill', icon: Plus },
+    { id: 'new-transaction', label: 'New Transaction', icon: DollarSign },
     { id: 'transaction-history', label: 'Transaction History', icon: History },
     { id: 'stats', label: 'Statistics', icon: BarChart3 },
     { id: 'profile', label: 'Profile', icon: User }

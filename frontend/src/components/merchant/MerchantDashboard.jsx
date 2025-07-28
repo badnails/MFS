@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useDataReloadContext } from '../../hooks/useDataReload';
-import { RefreshCw, Plus, Receipt } from 'lucide-react';
-import CreateBill from './CreateBill';
+import { RefreshCw, DollarSign, Receipt } from 'lucide-react';
+import NewTransaction from './NewTransaction';
 import TransactionHistory from '../common/TransactionHistory';
 import SidebarLayout from '../layouts/SidebarLayout';
 import { merchantSidebarConfig } from '../../config/sidebarConfigs';
@@ -49,7 +49,7 @@ const MerchantDashboardContent = ({ activeView, activeModal, setActiveModal }) =
   };
 
   const quickActions = [
-    { id: 'create-bill', title: 'Create Bill', icon: Plus, color: 'bg-blue-500', hover: 'hover:bg-blue-600' }
+    { id: 'new-transaction', title: 'New Transaction', icon: DollarSign, color: 'bg-green-500', hover: 'hover:bg-green-600' }
   ];
 
   const renderMainContent = () => {
@@ -163,7 +163,7 @@ const MerchantDashboardContent = ({ activeView, activeModal, setActiveModal }) =
                 <div>
                   <h3 className="text-lg font-semibold">{title}</h3>
                   <p className="text-sm opacity-90">
-                    Create new customer bills
+                    Create payment requests for customers
                   </p>
                 </div>
               </div>
@@ -191,7 +191,7 @@ const MerchantDashboardContent = ({ activeView, activeModal, setActiveModal }) =
       {renderMainContent()}
 
       {/* Modals */}
-      {activeModal === 'create-bill' && <CreateBill onClose={closeModal} />}
+      {activeModal === 'new-transaction' && <NewTransaction onClose={closeModal} />}
     </>
   );
 };
@@ -202,7 +202,7 @@ const MerchantDashboard = () => {
 
   const handleSidebarItemClick = (itemId) => {
     setActiveView(itemId);
-    if (['create-bill'].includes(itemId)) {
+    if (['new-transaction'].includes(itemId)) {
       setActiveModal(itemId);
       setActiveView('dashboard'); // Keep dashboard view when opening modals
     }
