@@ -577,3 +577,45 @@ export const updateInstitutionCategory = async (req, res) => {
     return res.status(500).json({ error: "Failed to update institution category" });
   }
 };
+
+export const changePassword = async (req, res) => {
+  const { accountid, currentPassword, newPassword } = req.body;
+
+  if (!accountid || !currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+    // Fetch current hashed password from DB
+    const result = await pool.query(
+      'SELECT pinhash FROM accounts WHERE accountid = $1',
+      [accountid]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+
+    const storedHash = result.rows[0].pinhash;
+
+    // Compare current password
+    const isMatch = await bcrypt.compare(currentPassword, storedHash);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+
+    // Hash new password
+    const newHash = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await pool.query(
+      'UPDATE accounts SET pinhash = $1 WHERE accountid = $2',
+      [newHash, accountid]
+    );
+
+    return res.status(200).json({ message: 'Password changed successfully' });
+  } catch (err) {
+    console.error('Error changing password:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+};

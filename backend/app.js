@@ -52,7 +52,7 @@ app.use('/agent', agentRoutes);
 app.use('/merchant', merchantRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/api', categoryRoutes);
-app.use('/analytics', adminRoutes);
+
 
 
 // 404 fallback
