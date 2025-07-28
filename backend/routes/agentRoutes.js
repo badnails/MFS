@@ -7,7 +7,11 @@ import {
   verifyCustomer, 
   processCashIn, 
   processCashOut, 
-  getAgentTransactions 
+  getAgentTransactions,
+  submitFloatRequest,
+  getFloatRequests,
+  getFloatRequestDocument,
+  uploadMiddleware
 } from '../controllers/agentController.js';
 
 const router = express.Router();
@@ -25,5 +29,10 @@ router.post('/cash-out', authenticateJWT, processCashOut);
 
 // Transaction history
 router.get('/transactions', authenticateJWT, getAgentTransactions);
+
+// Float request management
+router.post('/add-money-request', authenticateJWT, uploadMiddleware, submitFloatRequest);
+router.get('/float-requests', authenticateJWT, getFloatRequests);
+router.get('/float-request-document/:requestId', authenticateJWT, getFloatRequestDocument);
 
 export default router;

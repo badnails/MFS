@@ -6,13 +6,10 @@ export async function getAllTransactions(req, res) {
             SELECT 
                 t.*, 
                 a1.username AS source_name,
-                a2.username AS destination_name,
-                tt.transactiontypename as transactiontypename
-                
+                a2.username AS destination_name
             FROM transactions t
             LEFT JOIN accounts a1 ON t.sourceaccountid = a1.accountid
             JOIN accounts a2 ON t.destinationaccountid = a2.accountid
-            JOIN transactiontype tt on t.transactiontypeid = tt.transactiontypeid
         `);
 
         const data = result.rows;

@@ -4,6 +4,7 @@ import BalanceUpdate from './BalanceUpdate';
 import AccountsManagement from './AccountsManagement';
 import TransactionsView from './TransactionsView';
 import AdminOverview from './AdminOverview';
+import FloatRequestsManagement from './FloatRequestsManagement';
 import { adminSidebarConfig } from '../../config/sidebarConfigs';
 import { Wallet } from 'lucide-react';
 
@@ -20,6 +21,8 @@ const AdminDashboard = () => {
         return <AdminOverview />;
       case 'balance':
         return <BalanceUpdate />;
+      case 'float-requests':
+        return <FloatRequestsManagement />;
       case 'accounts':
         return <AccountsManagement />;
       case 'transactions':

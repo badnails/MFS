@@ -8,13 +8,13 @@ import {
   History, 
   User, 
   Plus, 
-  Minus,
+  DollarSign,
   BarChart3,
   Users,
   Settings,
   FileText,
-  DollarSign,
-  Briefcase
+  Briefcase,
+  Clock
 } from 'lucide-react';
 
 export const personalSidebarConfig = {
@@ -35,10 +35,9 @@ export const agentSidebarConfig = {
   menuItems: [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'cash-in', label: 'Cash In', icon: Plus },
-    { id: 'cash-out', label: 'Cash Out', icon: Minus },
-    { id: 'transaction-history', label: 'Transaction History', icon: History },
-    { id: 'stats', label: 'Statistics', icon: BarChart3 },
-    { id: 'profile', label: 'Profile', icon: User }
+    { id: 'add-money', label: 'Add Money', icon: DollarSign },
+    { id: 'pending-requests', label: 'Pending Requests', icon: Clock },
+    { id: 'transaction-history', label: 'Transaction History', icon: History }
   ]
 };
 
@@ -70,6 +69,7 @@ export const adminSidebarConfig = {
   menuItems: [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'balance', label: 'Balance Update', icon: CreditCard },
+    { id: 'float-requests', label: 'Float Requests', icon: Clock },
     { id: 'accounts', label: 'Accounts', icon: Users },
     { id: 'transactions', label: 'Transactions', icon: History },
     { id: 'settings', label: 'Settings', icon: Settings }

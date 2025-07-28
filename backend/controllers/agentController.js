@@ -1,5 +1,25 @@
 // src/controllers/agentController.js
 import pool from '../db.js';
+import multer from 'multer';
+
+// Configure multer for memory storage (for supporting documents)
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Check file type
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
+  }
+});
+
+export const uploadMiddleware = upload.single('supportDocument');
 
 export const getAgentDashboard = async (req, res) => {
   const agentId = req.user?.accountid;
@@ -426,5 +446,162 @@ export const getAgentTransactions = async (req, res) => {
   } catch (err) {
     console.error('Agent transactions error:', err);
     res.status(500).json({ error: 'Failed to load transactions' });
+  }
+};
+
+// Submit float request
+export const submitFloatRequest = async (req, res) => {
+  const agentId = req.user?.accountid;
+  const { amount } = req.body;
+  
+  if (!agentId) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+    return res.status(400).json({ error: 'Valid amount is required' });
+  }
+  
+  if (!req.file) {
+    return res.status(400).json({ error: 'Supporting document is required' });
+  }
+  
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+    
+    // Verify agent account
+    const agentCheck = await client.query(
+      'SELECT accounttype FROM accounts WHERE accountid = $1',
+      [agentId]
+    );
+    
+    if (agentCheck.rowCount === 0 || agentCheck.rows[0].accounttype !== 'AGENT') {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Access denied. Agent account required.' });
+    }
+    
+    const documentBuffer = req.file.buffer;
+    const mimeType = req.file.mimetype;
+    const filename = req.file.originalname;
+    
+    // Insert float request
+    const result = await client.query(`
+      INSERT INTO float_requests (
+        accountid, 
+        amount, 
+        sup_doc, 
+        sup_doc_mime_type, 
+        sup_doc_filename
+      )
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING request_id, request_date
+    `, [agentId, parseFloat(amount), documentBuffer, mimeType, filename]);
+    
+    if (result.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(500).json({ error: 'Failed to submit float request' });
+    }
+    
+    await client.query('COMMIT');
+    
+    res.status(201).json({
+      message: 'Float request submitted successfully',
+      requestId: result.rows[0].request_id,
+      requestDate: result.rows[0].request_date,
+      amount: parseFloat(amount),
+      status: 'PENDING'
+    });
+    
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Float request submission error:', err);
+    
+    if (err.message === 'Only image files are allowed') {
+      return res.status(400).json({ error: 'Only image files are allowed' });
+    }
+    
+    res.status(500).json({ error: 'Failed to submit float request' });
+  } finally {
+    client.release();
+  }
+};
+
+// Get float requests for agent
+export const getFloatRequests = async (req, res) => {
+  const agentId = req.user?.accountid;
+  
+  if (!agentId) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  try {
+    const result = await pool.query(`
+      SELECT 
+        request_id,
+        amount,
+        request_status,
+        request_date,
+        processed_date,
+        sup_doc_filename
+      FROM float_requests 
+      WHERE accountid = $1 
+      ORDER BY request_date DESC
+      LIMIT 50
+    `, [agentId]);
+    
+    const requests = result.rows.map(request => ({
+      ...request,
+      amount: parseFloat(request.amount)
+    }));
+    
+    res.json({ requests });
+    
+  } catch (err) {
+    console.error('Get float requests error:', err);
+    res.status(500).json({ error: 'Failed to retrieve float requests' });
+  }
+};
+
+// Get supporting document for a float request
+export const getFloatRequestDocument = async (req, res) => {
+  const agentId = req.user?.accountid;
+  const { requestId } = req.params;
+  
+  if (!agentId) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  if (!requestId) {
+    return res.status(400).json({ error: 'Request ID is required' });
+  }
+  
+  try {
+    const result = await pool.query(`
+      SELECT sup_doc, sup_doc_mime_type, sup_doc_filename 
+      FROM float_requests 
+      WHERE request_id = $1 AND accountid = $2 AND sup_doc IS NOT NULL
+    `, [requestId, agentId]);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+    
+    const { sup_doc, sup_doc_mime_type, sup_doc_filename } = result.rows[0];
+    
+    // Set appropriate headers
+    res.set({
+      'Content-Type': sup_doc_mime_type,
+      'Content-Length': sup_doc.length,
+      'Content-Disposition': `inline; filename="${sup_doc_filename}"`
+    });
+    
+    // Send the image buffer
+    res.send(sup_doc);
+    
+  } catch (err) {
+    console.error('Get float request document error:', err);
+    res.status(500).json({ error: 'Failed to retrieve document' });
   }
 };

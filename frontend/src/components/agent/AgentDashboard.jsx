@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useDataReloadContext } from '../../hooks/useDataReload';
-import { RefreshCw, Plus, Minus } from 'lucide-react';
+import { RefreshCw, Plus, DollarSign, Clock } from 'lucide-react';
 import CashIn from './CashIn';
-import CashOut from './CashOut';
+import AddMoney from './AddMoney';
+import PendingRequests from './PendingRequests';
 import TransactionHistory from '../common/TransactionHistory';
 import SidebarLayout from '../layouts/SidebarLayout';
 import { agentSidebarConfig } from '../../config/sidebarConfigs';
 import { Wallet } from 'lucide-react';
 import axios from 'axios';
 
-const AgentDashboardContent = ({ activeView, activeModal, setActiveModal }) => {
+const AgentDashboardContent = ({ activeView, activeModal, setActiveModal, setActiveView }) => {
   const { user } = useAuth();
   const reloadKey = useDataReloadContext();
   const [agentData, setAgentData] = useState(null);
@@ -49,14 +50,21 @@ const AgentDashboardContent = ({ activeView, activeModal, setActiveModal }) => {
   const formatCurrency = (amount) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
-  const openModal = (modal) => setActiveModal(modal);
+  const openModal = (modal) => {
+    if (modal === 'pending-requests') {
+      setActiveView('pending-requests');
+    } else {
+      setActiveModal(modal);
+    }
+  };
   const closeModal = () => {
     setActiveModal(null);
   };
 
   const quickActions = [
     { id: 'cash-in', title: 'Cash In', icon: Plus, color: 'bg-green-500', hover: 'hover:bg-green-600' },
-    { id: 'cash-out', title: 'Cash Out', icon: Minus, color: 'bg-red-500', hover: 'hover:bg-red-600' }
+    { id: 'add-money', title: 'Add Money', icon: DollarSign, color: 'bg-blue-500', hover: 'hover:bg-blue-600' },
+    { id: 'pending-requests', title: 'Pending Requests', icon: Clock, color: 'bg-yellow-500', hover: 'hover:bg-yellow-600' }
   ];
 
   const renderMainContent = () => {
@@ -74,6 +82,8 @@ const AgentDashboardContent = ({ activeView, activeModal, setActiveModal }) => {
     switch (activeView) {
       case 'dashboard':
         return renderDashboardContent();
+      case 'pending-requests':
+        return <PendingRequests />;
       case 'transaction-history':
         return (
           <div className="bg-white rounded-lg shadow">
@@ -85,59 +95,6 @@ const AgentDashboardContent = ({ activeView, activeModal, setActiveModal }) => {
                 accountId={user?.accountid} 
                 isModal={false} 
               />
-            </div>
-          </div>
-        );
-      case 'stats':
-        return (
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Statistics</h2>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard title="Today's Cash In" count={todayStats.cashInCount} amount={todayStats.totalCashIn} color="green" />
-                <StatCard title="Today's Cash Out" count={todayStats.cashOutCount} amount={todayStats.totalCashOut} color="red" />
-                <StatCard
-                  title="Total Transactions"
-                  count={todayStats.cashInCount + todayStats.cashOutCount}
-                  amount={null}
-                  color="blue"
-                />
-                <StatCard title="Commission Earned" count={null} amount={todayStats.commission} color="yellow" />
-              </div>
-            </div>
-          </div>
-        );
-      case 'profile':
-        return (
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Profile</h2>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Account ID</label>
-                  <p className="text-sm text-gray-900">{user?.accountid}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                  <p className="text-sm text-gray-900">{user?.username}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Account Name</label>
-                  <p className="text-sm text-gray-900">{user?.accountname}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Account Type</label>
-                  <p className="text-sm text-gray-900 capitalize">{user?.accounttype}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Available Balance</label>
-                  <p className="text-sm text-gray-900">{formatCurrency(agentData?.balance || 0)}</p>
-                </div>
-              </div>
             </div>
           </div>
         );
@@ -183,7 +140,7 @@ const AgentDashboardContent = ({ activeView, activeModal, setActiveModal }) => {
       {/* Quick Actions */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {quickActions.map(({ id, title, icon: Icon, color, hover }) => ( // eslint-disable-line no-unused-vars
             <button
               key={id}
@@ -195,7 +152,9 @@ const AgentDashboardContent = ({ activeView, activeModal, setActiveModal }) => {
                 <div>
                   <h3 className="text-lg font-semibold">{title}</h3>
                   <p className="text-sm opacity-90">
-                    {id === 'cash-in' ? 'Accept customer deposits' : 'Process customer withdrawals'}
+                    {id === 'cash-in' ? 'Accept customer deposits' : 
+                     id === 'add-money' ? 'Request money for your float' : 
+                     'View your float requests'}
                   </p>
                 </div>
               </div>
@@ -220,7 +179,7 @@ const AgentDashboardContent = ({ activeView, activeModal, setActiveModal }) => {
 
       {/* Modals */}
       {activeModal === 'cash-in' && <CashIn onClose={closeModal} />}
-      {activeModal === 'cash-out' && <CashOut onClose={closeModal} />}
+      {activeModal === 'add-money' && <AddMoney onClose={closeModal} />}
     </>
   );
 };
@@ -231,7 +190,7 @@ const AgentDashboard = () => {
 
   const handleSidebarItemClick = (itemId) => {
     setActiveView(itemId);
-    if (['cash-in', 'cash-out'].includes(itemId)) {
+    if (['cash-in', 'add-money'].includes(itemId)) {
       setActiveModal(itemId);
       setActiveView('dashboard'); // Keep dashboard view when opening modals
     }
@@ -249,6 +208,7 @@ const AgentDashboard = () => {
         activeView={activeView}
         activeModal={activeModal}
         setActiveModal={setActiveModal}
+        setActiveView={setActiveView}
       />
     </SidebarLayout>
   );
