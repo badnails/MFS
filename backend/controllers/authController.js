@@ -4,11 +4,12 @@ import otplib from "otplib";
 import qrcode from "qrcode";
 import jwt from "jsonwebtoken";
 import { getLocationInfo } from "../utils/location.js";
+import { response } from "express";
 
 export const PassCheck = async (req, res) => {
-  const {username, password, authFor} = req.body;
+  const {username, password, authFor, transactionid} = req.body;
   const { ipAddress, locationInfo } = await getLocationInfo(req);
-  const result = await passcheckutil(username, password, ipAddress, locationInfo);
+  const result = await passcheckutil(username, password, ipAddress, locationInfo, transactionid);
   if(result.valid)
   {
     const data = result.data;
@@ -29,7 +30,7 @@ export const PassCheck = async (req, res) => {
   }
 }
 
-const passcheckutil = async (username, password, ipAddress, locationInfo) => {
+const passcheckutil = async (username, password, ipAddress, locationInfo, transactionid) => {
   try {
     const result = await pool.query(
       "SELECT * FROM accounts WHERE username = $1",
@@ -49,16 +50,16 @@ const passcheckutil = async (username, password, ipAddress, locationInfo) => {
     const isMatch = await bcrypt.compare(password, user.pinhash);
 
     if (!isMatch) {
-      await pool.query(
-        "INSERT INTO authenticationevents (userid, eventtimestamp, authtype, issuccessful, ipaddress, locationinfo) VALUES ($1, NOW(), $2, $3, $4, $5)",
-        [user.accountid, "PASSWORD", false, ipAddress, locationInfo]
+      const response = await pool.query(
+        "INSERT INTO authenticationevents (userid, eventtimestamp, authtype, issuccessful, ipaddress, locationinfo, transactionid) VALUES ($1, NOW(), $2, $3, $4, $5, $6) RETURNING GREATEST(0, (SELECT (SELECT int_value FROM db_constants WHERE key = 'max_login_attempts') - (SELECT COUNT(*) FROM authenticationevents WHERE userid = $1 AND authtype = 'PASSWORD' AND issuccessful = false AND now()-eventtimestamp<=(SELECT interval_value FROM db_constants WHERE key = 'login_block_duration')))) AS attempts_remaining",
+        [user.accountid, "PASSWORD", false, ipAddress, locationInfo, transactionid]
       );
-      return {valid:false, error: "Incorrect Password"};
+      return {valid:false, error: "Incorrect Password; Attempts Left: "+response.rows[0].attempts_remaining, attemptsLeft: response.rows[0].attempts_remaining};
     }
 
     await pool.query(
-      "INSERT INTO authenticationevents (userid, eventtimestamp, authtype, issuccessful, ipaddress, locationinfo) VALUES ($1, NOW(), $2, $3, $4, $5)",
-      [user.accountid, "PASSWORD", true, ipAddress, locationInfo]
+      "INSERT INTO authenticationevents (userid, eventtimestamp, authtype, issuccessful, ipaddress, locationinfo, transactionid) VALUES ($1, NOW(), $2, $3, $4, $5, $6)",
+      [user.accountid, "PASSWORD", true, ipAddress, locationInfo, transactionid]
     );
 
     return {valid: true, data:{accountid: user.accountid, username: user.username, accounttype: user.accounttype}};
@@ -325,7 +326,7 @@ export const userBlockCheck = async (req, res) => {
   }
 
   const block = await pool.query(
-    "SELECT a.authtype, b.blocked_until from blocked_accounts b join authenticationevents a on (a.eventid = b.blocked_by) join accounts accs on (accs.accountid = b.accountid) where accs.username = $1 AND b.blocked_until>now() order by blocked_until desc limit 1",
+    "SELECT a.authtype, to_char((b.blocked_until AT TIME ZONE 'Asia/Dhaka'), 'YYYY-MM-DD HH24:MI:SS') AS blocked_until from blocked_accounts b join authenticationevents a on (a.eventid = b.blocked_by) join accounts accs on (accs.accountid = b.accountid) where accs.username = $1 AND b.blocked_until>now() order by blocked_until desc limit 1",
     [username]
   );
   

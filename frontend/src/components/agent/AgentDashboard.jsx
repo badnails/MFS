@@ -52,9 +52,6 @@ const AgentDashboardContent = ({ activeView, activeModal, setActiveModal }) => {
   const openModal = (modal) => setActiveModal(modal);
   const closeModal = () => {
     setActiveModal(null);
-    // Refresh data after transaction
-    axios.get('/agent/dashboard').then(res => setAgentData(res.data));
-    axios.get('/agent/stats/today').then(res => setTodayStats(res.data));
   };
 
   const quickActions = [

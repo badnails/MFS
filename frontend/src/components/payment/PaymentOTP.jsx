@@ -116,7 +116,19 @@ const PaymentOTP = () => {
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
+    if (transactionId) {
+      try {
+        // Cancel the transaction by setting status to FAILED
+        await axios.post('/transaction/cancel', {
+          transactionid: transactionId
+        });
+        console.log('Transaction cancelled successfully');
+      } catch (err) {
+        console.error('Failed to cancel transaction:', err);
+        // Even if cancellation fails, we still navigate away
+      }
+    }
     navigate('/dashboard');
   };
 

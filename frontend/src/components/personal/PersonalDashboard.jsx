@@ -18,13 +18,16 @@ import BillPayment from './BillPayment';
 import TransactionHistory from '../common/TransactionHistory';
 import SidebarLayout from '../layouts/SidebarLayout';
 import { personalSidebarConfig } from '../../config/sidebarConfigs';
+import GeneralPopup from '../common/GeneralPopup';
 
 const PersonalDashboardContent = ({ activeView, activeModal, setActiveModal }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const reloadKey = useDataReloadContext();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showBlockedPopup, setShowBlockedPopup] = useState(false);
+  const [countdown, setCountdown] = useState(5);
 
   const fetchDashboardData = async () => {
     try {
@@ -32,6 +35,11 @@ const PersonalDashboardContent = ({ activeView, activeModal, setActiveModal }) =
       const response = await axios.get('/user/homepage');
       setDashboardData(response.data);
       setError('');
+      
+      // Check if account is blocked
+      if (response.data?.user?.accountstatus === 'BLOCKED') {
+        setShowBlockedPopup(true);
+      }
     } catch (err) {
       setError('Failed to load dashboard data');
       console.error('Dashboard fetch error:', err);
@@ -43,6 +51,27 @@ const PersonalDashboardContent = ({ activeView, activeModal, setActiveModal }) =
   useEffect(() => {
     fetchDashboardData();
   }, [reloadKey]);
+
+  // Handle blocked account countdown and automatic logout
+  useEffect(() => {
+    if (!showBlockedPopup) return;
+
+    setCountdown(5);
+    
+    const countdownInterval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          setShowBlockedPopup(false);
+          logout();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(countdownInterval);
+  }, [showBlockedPopup, logout]);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -92,7 +121,6 @@ const PersonalDashboardContent = ({ activeView, activeModal, setActiveModal }) =
 
   const closeModal = () => {
     setActiveModal(null);
-    fetchDashboardData();
   };
 
   const renderMainContent = () => {
@@ -234,6 +262,26 @@ const PersonalDashboardContent = ({ activeView, activeModal, setActiveModal }) =
       {activeModal === 'cash-out' && <CashOut onClose={closeModal} />}
       {activeModal === 'merchant-payment' && <MerchantPayment onClose={closeModal} />}
       {activeModal === 'bill-payment' && <BillPayment onClose={closeModal} />}
+
+      {/* Blocked Account Popup */}
+      <GeneralPopup
+        isVisible={showBlockedPopup}
+        mode="failure"
+        title="Account Blocked"
+        subtitle="Access Restricted"
+        message={`Your account has been blocked. You will be logged out automatically in ${countdown} second${countdown !== 1 ? 's' : ''}.`}
+        countdownSeconds={countdown}
+        autoRedirect={false}
+        primaryButtonText="Logout Now"
+        onPrimaryAction={() => {
+          setShowBlockedPopup(false);
+          logout();
+        }}
+        onClose={() => {
+          setShowBlockedPopup(false);
+          logout();
+        }}
+      />
     </>
   );
 };

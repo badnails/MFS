@@ -1,7 +1,7 @@
 // src/hooks/useSidebar.js
 import { useState } from 'react';
 
-export const useSidebar = (initialCollapsed = false) => {
+export const useSidebar = (initialCollapsed = true) => {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [activeItem, setActiveItem] = useState(null);
 

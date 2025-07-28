@@ -28,16 +28,18 @@ const AssignBill = ({ onClose }) => {
     }, []);
 
     useEffect(() => {
-        const filtered = batches.filter(batch =>
-            batch.batchname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            batch.batchid.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        setFilteredBatches(filtered);
-    }, [searchTerm, batches]);
+    const filtered = batches.filter(batch =>
+        (typeof batch?.name === 'string' &&
+            batch.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (batch?.id &&
+            batch.id.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+    setFilteredBatches(filtered);
+}, [searchTerm, batches]);
 
     const fetchBatches = async () => {
         try {
-            const response = await axios.get('/biller/batches');
+            const response = await axios.get('/biller/bill-batches');
             setBatches(response.data.batches || response.data);
             setFilteredBatches(response.data.batches || response.data);
         } catch {
@@ -56,7 +58,7 @@ const AssignBill = ({ onClose }) => {
 
     const handleBatchSelect = (batch) => {
         setSelectedBatch(batch);
-        fetchBillFields(batch.batchid);
+        fetchBillFields(batch.id);
         setCurrentSection(2);
     };
 
@@ -356,7 +358,7 @@ const AssignBill = ({ onClose }) => {
             }));
 
             // Send to backend
-            const response = await axios.post(`/biller/create-bills/${selectedBatch.batchid}`, {
+            const response = await axios.post(`/biller/create-bills/${selectedBatch.id}`, {
                 bills: billsData
             });
 
@@ -409,16 +411,16 @@ const AssignBill = ({ onClose }) => {
                     >
                         <div className="flex justify-between items-start">
                             <div className="flex-1">
-                                <h3 className="font-semibold text-gray-900 text-lg">{batch.batchname}</h3>
-                                <p className="text-sm text-gray-500 mt-1">ID: {batch.batchid}</p>
-                                <p className="text-sm text-gray-600 mt-2">{batch.description || 'No description'}</p>
+                                <h3 className="font-semibold text-gray-900 text-lg">{batch.name}</h3>
+                                <p className="text-sm text-gray-500 mt-1">ID: {batch.id}</p>
+                                {/* <p className="text-sm text-gray-600 mt-2">{batch.description || 'No description'}</p> */}
                             </div>
                             <div className="text-right ml-4">
                                 <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium mb-2">
-                                    {batch.recurrencetype}
+                                    {batch.recurrenceType}
                                 </div>
                                 <p className="text-xs text-gray-500">
-                                    Started: {formatDate(batch.startdate)}
+                                    Started: {formatDate(batch.startDate)}
                                 </p>
                             </div>
                         </div>

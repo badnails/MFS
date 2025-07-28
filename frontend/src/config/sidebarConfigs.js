@@ -47,7 +47,6 @@ export const merchantSidebarConfig = {
   menuItems: [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'create-bill', label: 'Create Bill', icon: Plus },
-    { id: 'pending-bills', label: 'Pending Bills', icon: FileText },
     { id: 'transaction-history', label: 'Transaction History', icon: History },
     { id: 'stats', label: 'Statistics', icon: BarChart3 },
     { id: 'profile', label: 'Profile', icon: User }
@@ -60,9 +59,9 @@ export const billerSidebarConfig = {
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'assign-bill', label: 'Assign Bill', icon: Receipt },
     { id: 'create-batch', label: 'Create Bill Batch', icon: Plus },
+    { id: 'batch-management', label: 'Batch Management', icon: Settings },
     { id: 'bill-history', label: 'Bill History', icon: History },
     { id: 'stats', label: 'Statistics', icon: BarChart3 },
-    { id: 'profile', label: 'Profile', icon: User }
   ]
 };
 

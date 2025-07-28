@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation} from 'react-router-dom';
 import { Lock, Eye, EyeOff, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import GeneralPopup from '../common/GeneralPopup';
 import axios from 'axios';
 
 const PaymentPassword = () => {
@@ -15,16 +16,19 @@ const PaymentPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [attempts, setAttempts] = useState(0);
-  const maxAttempts = 3;
+  const [attemptsLeft, setAttemptsLeft] = useState(null);
+  const [showFailurePopup, setShowFailurePopup] = useState(false);
 
   useEffect(() => {
     if (!transactionId) {
-        console.log("trx_id not found");
       navigate('/dashboard');
       return;
     }
   }, [transactionId, navigate]);
+
+  const showTransactionFailure = () => {
+    setShowFailurePopup(true);
+  };
 
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
@@ -41,31 +45,57 @@ const PaymentPassword = () => {
       const response = await axios.post('/auth/PassCheck', {
         username: user.username,
         password: password,
-        authFor: "TRX"
+        authFor: "TRX",
+        transactionid: transactionId
       });
 
       if (response.data.valid) {
-        // Password verified, proceed to OTP verification
+        // Password verified, proceed to finalize payment
         handleConfirmPayment();
-
       } else {
-        setAttempts(prev => prev + 1);
-        if (attempts + 1 >= maxAttempts) {
-          setError('Maximum attempts exceeded. Please try again later.');
-          setTimeout(() => navigate('/dashboard'), 3000);
-        } else {
-          setError(`Invalid password. ${maxAttempts - attempts - 1} attempts remaining.`);
-        }
+        // Handle authentication failure
+        const errorMessage = response.data.message || 'Authentication failed';
+        setError(errorMessage);
         setPassword('');
       }
     } catch (err) {
-      setAttempts(prev => prev + 1);
-      if (attempts + 1 >= maxAttempts) {
-        setError('Maximum attempts exceeded. Please try again later.');
-        setTimeout(() => navigate('/dashboard'), 3000);
+      // Handle errors from auth controller
+      if (err.response?.status === 401) {
+        const errorData = err.response.data;
+        const errorMessage = errorData.message || 'Invalid password';
+        
+        // Check if this includes attempts left information
+        if (errorMessage.includes('Attempts Left:')) {
+          const attemptsMatch = errorMessage.match(/Attempts Left: (\d+)/);
+          if (attemptsMatch) {
+            const remainingAttempts = parseInt(attemptsMatch[1]);
+            setAttemptsLeft(remainingAttempts);
+            
+            if (remainingAttempts === 0) {
+              setError('Maximum attempts exceeded. Transaction failed.');
+              setTimeout(() => {
+                showTransactionFailure();
+              }, 3000);
+            } else {
+              setError(`Invalid password. ${remainingAttempts} attempts remaining.`);
+            }
+          } else {
+            setError(errorMessage);
+          }
+        } else {
+          setError(errorMessage);
+        }
+      } else if (err.response?.status === 403) {
+        // Handle blocked account
+        const errorMessage = err.response.data.message || 'Account temporarily blocked';
+        setError(errorMessage);
+        setTimeout(() => {
+          showTransactionFailure();
+        }, 3000);
       } else {
-        setError(err.response?.data?.message || 'Invalid password. Please try again.');
+        setError(err.response?.data?.message || 'Authentication failed. Please try again.');
       }
+      
       setPassword('');
     } finally {
       setLoading(false);
@@ -94,14 +124,25 @@ const PaymentPassword = () => {
         setError(response.data.error || 'Failed to process payment');
       }
     } catch (err) {
-      console.error('Payment processing error:', err);
       setError(err.response?.data?.error || 'Payment processing failed');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
+    if (transactionId) {
+      try {
+        // Cancel the transaction by setting status to FAILED
+        await axios.post('/transaction/cancel', {
+          transactionid: transactionId
+        });
+        console.log('Transaction cancelled successfully');
+      } catch (err) {
+        console.error('Failed to cancel transaction:', err);
+        // Even if cancellation fails, we still navigate away
+      }
+    }
     navigate('/dashboard');
   };
 
@@ -157,7 +198,7 @@ const PaymentPassword = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   placeholder="Enter your password"
-                  disabled={loading || attempts >= maxAttempts}
+                  disabled={loading || (attemptsLeft !== null && attemptsLeft <= 0)}
                 />
                 <button
                   type="button"
@@ -168,11 +209,6 @@ const PaymentPassword = () => {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
-              {attempts > 0 && attempts < maxAttempts && (
-                <p className="text-sm text-amber-600 mt-2">
-                  ⚠️ {maxAttempts - attempts} attempts remaining
-                </p>
-              )}
             </div>
 
             {/* Error Message */}
@@ -190,9 +226,9 @@ const PaymentPassword = () => {
             <div className="space-y-3">
               <button
                 type="submit"
-                disabled={loading || !password || attempts >= maxAttempts}
+                disabled={loading || !password || (attemptsLeft !== null && attemptsLeft <= 0)}
                 className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center ${
-                  loading || !password || attempts >= maxAttempts
+                  loading || !password || (attemptsLeft !== null && attemptsLeft <= 0)
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white hover:shadow-lg transform hover:scale-[1.02]'
                 }`}
@@ -229,6 +265,20 @@ const PaymentPassword = () => {
           </div>
         </div>
       </div>
+
+      {/* Transaction Failure Popup */}
+      <GeneralPopup
+        isVisible={showFailurePopup}
+        mode="failure"
+        title="Transaction Failed"
+        subtitle="Authentication unsuccessful"
+        message="Your payment could not be processed due to multiple failed authentication attempts."
+        redirectTo="/dashboard"
+        preventBack={true}
+        countdownSeconds={3}
+        autoRedirect={true}
+        onClose={() => setShowFailurePopup(false)}
+      />
     </div>
   );
 };

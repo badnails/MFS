@@ -1,28 +1,30 @@
 // src/components/merchant/PendingBills.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Receipt, RefreshCw, Eye, Copy, ExternalLink } from 'lucide-react';
 import axios from 'axios';
 
-const PendingBills = ({ onClose }) => {
+const PendingBills = ({ onClose, limit, isModal = true }) => {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchPendingBills();
-  }, []);
-
-  const fetchPendingBills = async () => {
+  const fetchPendingBills = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get('/merchant/pending-bills');
-      setBills(response.data.bills || []);
+      const allBills = response.data.bills || [];
+      // Apply limit if specified
+      setBills(limit ? allBills.slice(0, limit) : allBills);
     } catch (error) {
       console.error('Failed to fetch pending bills:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [limit]);
+
+  useEffect(() => {
+    fetchPendingBills();
+  }, [fetchPendingBills]);
 
   const refreshBillStatus = async (bill) => {
     try {

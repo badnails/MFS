@@ -1,5 +1,5 @@
 import express from 'express';
-import { assignBills, createBillBatch, getBatches, getBillerDashboard, getBillerStatsToday, checkBatchNameAvailability, getBillFields, createBills } from '../controllers/billerController.js';
+import { createBillBatch, getBatches, updateBillBatch, getBillerDashboard, getBillerStats, checkBatchNameAvailability, getBillFields, createBills } from '../controllers/billerController.js';
 import { authenticateJWT } from '../controllers/authController.js';
 
 const router = express.Router();
@@ -8,12 +8,12 @@ const router = express.Router();
 // router.get('/assignbill', getAssignBillPage);   // GET /biller/assignbill
 // router.post('/assignbill', postAssignBill);     // POST /biller/assignbill
 router.get('/dashboard', authenticateJWT, getBillerDashboard);
-router.get('/stats/today', authenticateJWT, getBillerStatsToday);
+router.get('/stats', authenticateJWT, getBillerStats);
 
-
+// Bill batch routes
+router.get('/bill-batches', authenticateJWT, getBatches);
+router.put('/bill-batches/:id', authenticateJWT, updateBillBatch);
 router.post('/createbatch', authenticateJWT, createBillBatch);
-router.post('/assignbills', authenticateJWT, assignBills);
-router.get('/batches', authenticateJWT, getBatches);
 router.get('/check-batch-name/:batchname', authenticateJWT, checkBatchNameAvailability);
 router.get('/bill-fields/:batchid', authenticateJWT, getBillFields);
 router.post('/create-bills/:batchid', authenticateJWT, createBills);
