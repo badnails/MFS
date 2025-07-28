@@ -4,6 +4,7 @@ import { useDataReloadContext } from '../../hooks/useDataReload';
 import { RefreshCw, Plus, Receipt } from 'lucide-react';
 import CreateBillBatch from './CreateBillBatch';
 import AssignBill from './AssignBill';
+import BillerAnalytics from './BillerAnalytics';
 import TransactionHistory from '../common/TransactionHistory';
 import SidebarLayout from '../layouts/SidebarLayout';
 import { billerSidebarConfig } from '../../config/sidebarConfigs';
@@ -86,6 +87,8 @@ const BillerDashboardContent = ({ activeView, activeModal, setActiveModal }) => 
             </div>
           </div>
         );
+      case 'analytics':
+        return <BillerAnalytics />;
       case 'stats':
         return (
           <div className="bg-white rounded-lg shadow">

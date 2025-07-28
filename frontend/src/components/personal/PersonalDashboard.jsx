@@ -16,6 +16,7 @@ import CashOut from './CashOut';
 import MerchantPayment from './MerchantPayment';
 import BillPayment from './BillPayment';
 import TransactionHistory from '../common/TransactionHistory';
+import PersonalAnalytics from './PersonalAnalytics';
 import SidebarLayout from '../layouts/SidebarLayout';
 import { personalSidebarConfig } from '../../config/sidebarConfigs';
 
@@ -160,6 +161,8 @@ const PersonalDashboardContent = ({ activeView, activeModal, setActiveModal }) =
             </div>
           </div>
         );
+      case 'analytics':
+        return <PersonalAnalytics />;
       default:
         return renderDashboardContent();
     }

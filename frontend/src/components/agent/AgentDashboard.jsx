@@ -4,6 +4,7 @@ import { useDataReloadContext } from '../../hooks/useDataReload';
 import { RefreshCw, Plus, Minus } from 'lucide-react';
 import CashIn from './CashIn';
 import CashOut from './CashOut';
+import AgentAnalytics from './AgentAnalytics';
 import TransactionHistory from '../common/TransactionHistory';
 import SidebarLayout from '../layouts/SidebarLayout';
 import { agentSidebarConfig } from '../../config/sidebarConfigs';
@@ -91,6 +92,8 @@ const AgentDashboardContent = ({ activeView, activeModal, setActiveModal }) => {
             </div>
           </div>
         );
+      case 'analytics':
+        return <AgentAnalytics />;
       case 'stats':
         return (
           <div className="bg-white rounded-lg shadow">
