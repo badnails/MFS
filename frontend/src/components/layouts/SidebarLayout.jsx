@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useDataReload, DataReloadContext } from "../../hooks/useDataReload";
-import { LogOut, User, ChevronDown, Settings, Contact, UserCircle, Key, FileText } from "lucide-react";
+import { LogOut, User, ChevronDown, Settings, Contact, UserCircle, Key, FileText, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import NotificationCenter from "../common/NotificationCenter";
 import Sidebar from "../common/Sidebar";
@@ -74,6 +74,11 @@ const SidebarLayout = ({
       label: 'TOTP Recovery',
       icon: Key,
       onClick: () => navigate('/profile/totp-recovery'),
+    },
+    {
+      label: 'Change Password',
+      icon: Lock,
+      onClick: () => navigate('/profile/change-password'),
     },
   ];
 

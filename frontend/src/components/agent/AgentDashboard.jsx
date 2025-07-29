@@ -5,6 +5,7 @@ import { RefreshCw, Plus, DollarSign, Clock } from 'lucide-react';
 import CashIn from './CashIn';
 import AddMoney from './AddMoney';
 import PendingRequests from './PendingRequests';
+import AgentAnalytics from './AgentAnalytics';
 import TransactionHistory from '../common/TransactionHistory';
 import SidebarLayout from '../layouts/SidebarLayout';
 import { agentSidebarConfig } from '../../config/sidebarConfigs';
@@ -95,6 +96,61 @@ const AgentDashboardContent = ({ activeView, activeModal, setActiveModal, setAct
                 accountId={user?.accountid} 
                 isModal={false} 
               />
+            </div>
+          </div>
+        );
+      case 'analytics':
+        return <AgentAnalytics />;
+      case 'stats':
+        return (
+          <div className="bg-white rounded-lg shadow">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Statistics</h2>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard title="Today's Cash In" count={todayStats.cashInCount} amount={todayStats.totalCashIn} color="green" />
+                <StatCard title="Today's Cash Out" count={todayStats.cashOutCount} amount={todayStats.totalCashOut} color="red" />
+                <StatCard
+                  title="Total Transactions"
+                  count={todayStats.cashInCount + todayStats.cashOutCount}
+                  amount={null}
+                  color="blue"
+                />
+                <StatCard title="Commission Earned" count={null} amount={todayStats.commission} color="yellow" />
+              </div>
+            </div>
+          </div>
+        );
+      case 'profile':
+        return (
+          <div className="bg-white rounded-lg shadow">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Profile</h2>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Account ID</label>
+                  <p className="text-sm text-gray-900">{user?.accountid}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                  <p className="text-sm text-gray-900">{user?.username}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Account Name</label>
+                  <p className="text-sm text-gray-900">{user?.accountname}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Account Type</label>
+                  <p className="text-sm text-gray-900 capitalize">{user?.accounttype}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Available Balance</label>
+                  <p className="text-sm text-gray-900">{formatCurrency(agentData?.balance || 0)}</p>
+                </div>
+              </div>
             </div>
           </div>
         );

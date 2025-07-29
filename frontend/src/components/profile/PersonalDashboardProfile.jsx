@@ -13,7 +13,8 @@ import {
   Edit3, 
   Shield,
   CreditCard,
-  Key
+  Key,
+  Lock
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -321,6 +322,18 @@ const PersonalDashboardProfile = () => {
               <div className="text-left">
                 <p className="font-medium text-gray-900">TOTP Recovery</p>
                 <p className="text-sm text-gray-500">Regenerate your authenticator QR code</p>
+              </div>
+            </button>
+            <button
+              onClick={() => navigate('/profile/change-password')}
+              className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Lock className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="text-left">
+                <p className="font-medium text-gray-900">Change Password</p>
+                <p className="text-sm text-gray-500">Update your account password</p>
               </div>
             </button>
             <div className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg">

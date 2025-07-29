@@ -4,6 +4,7 @@ import { useDataReloadContext } from '../../hooks/useDataReload';
 import { RefreshCw, Plus, Receipt, Calendar, ChevronDown, Search } from 'lucide-react';
 import CreateBillBatch from './CreateBillBatch';
 import AssignBill from './AssignBill';
+import BillerAnalytics from './BillerAnalytics';
 import BillBatchManagement from './BillBatchManagement';
 import TransactionHistory from '../common/TransactionHistory';
 import SidebarLayout from '../layouts/SidebarLayout';
@@ -188,6 +189,8 @@ const BillerDashboardContent = ({ activeView, activeModal, setActiveModal }) => 
             </div>
           </div>
         );
+      case 'analytics':
+        return <BillerAnalytics />;
       case 'batch-management':
         return <BillBatchManagement />;
       case 'stats':

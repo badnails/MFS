@@ -27,6 +27,7 @@ import ContactInfoUpdate from './components/profile/ContactInfoUpdate';
 import PersonalInfoUpdate from './components/profile/PersonalInfoUpdate';
 import InstitutionalInfoUpdate from './components/profile/InstitutionalInfoUpdate';
 import TOTPRecovery from './components/profile/TOTPRecovery';
+import PasswordChange from './components/profile/PasswordChange';
 import AccountDetails from './components/accountDetails';
 
 // Replace your current routing with:
@@ -114,6 +115,11 @@ function App() {
             <Route path="/profile/totp-recovery" element={
               <ProtectedRoute>
                 <TOTPRecovery />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile/change-password" element={
+              <ProtectedRoute>
+                <PasswordChange />
               </ProtectedRoute>
             } />
 

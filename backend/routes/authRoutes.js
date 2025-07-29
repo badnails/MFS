@@ -1,5 +1,5 @@
 import express from 'express';
-import { PassCheck, LoginOTPCheck, signupUser, availableUsernames, userBlockCheck, completeAccountSetup, checkEmail, checkPhoneNumber, regenerateTOTP } from '../controllers/authController.js';
+import { PassCheck, LoginOTPCheck, signupUser, availableUsernames, userBlockCheck, completeAccountSetup, checkEmail, checkPhoneNumber, regenerateTOTP, updateInstitutionCategory, changePassword } from '../controllers/authController.js';
 
 const router = express.Router();
 
@@ -14,5 +14,7 @@ router.get('/check-user-block/:username', userBlockCheck);
 
 router.post('/complete-account-setup', completeAccountSetup);
 router.post('/regenerate-totp', regenerateTOTP);
+router.post('/update-institution-category', updateInstitutionCategory);
+router.post('/change-password', changePassword);
 
 export default router;

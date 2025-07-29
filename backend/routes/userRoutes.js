@@ -2,6 +2,10 @@ import express from 'express';
 import { getHomePage, validateAccount, getBalance, searchAccounts, getBills, getProfileData, updateProfileField, uploadProfilePicture, getProfilePicture, deleteProfilePicture, uploadMiddleware, getBillBatches, getBillFields, searchBills, linkBillTransaction} from '../controllers/userController.js';
 import { authenticateJWT } from '../controllers/authController.js';
 import { getUserBalance } from '../controllers/userController.js';
+import { 
+  getTransactionVolume, 
+  getTransactionStatusDistribution 
+} from '../controllers/admin/analyticsController.js';
 
 const router = express.Router();
 
@@ -25,5 +29,9 @@ router.put('/updateProfile',authenticateJWT, updateProfileField);
 router.post('/uploadProfilePicture', authenticateJWT, uploadMiddleware, uploadProfilePicture);
 router.get('/profilePicture/:accountid', getProfilePicture); // Public endpoint for viewing pictures
 router.delete('/deleteProfilePicture', authenticateJWT, deleteProfilePicture);
+
+// Analytics routes for personal users
+router.get('/analytics/transactions/volume/:accountId', authenticateJWT, getTransactionVolume);
+router.get('/analytics/transactions/status/:accountId', authenticateJWT, getTransactionStatusDistribution);
 
 export default router;

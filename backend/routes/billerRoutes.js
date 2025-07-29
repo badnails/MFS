@@ -1,6 +1,7 @@
 import express from 'express';
 import { createBillBatch, getBatches, updateBillBatch, getBillerDashboard, getBillerStats, checkBatchNameAvailability, getBillFields, createBills } from '../controllers/billerController.js';
 import { authenticateJWT } from '../controllers/authController.js';
+import { getBillsData } from '../controllers/admin/analyticsController.js';
 
 const router = express.Router();
 
@@ -18,5 +19,7 @@ router.get('/check-batch-name/:batchname', authenticateJWT, checkBatchNameAvaila
 router.get('/bill-fields/:batchid', authenticateJWT, getBillFields);
 router.post('/create-bills/:batchid', authenticateJWT, createBills);
 
+// Analytics routes for billers
+router.get('/analytics/bills/:accountId', authenticateJWT, getBillsData);
 
 export default router;
