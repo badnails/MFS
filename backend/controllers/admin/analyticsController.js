@@ -271,7 +271,7 @@ export const getBillsData = async (req, res) => {
             ) 
           THEN 1 
         END) as unpaid_bills,
-        COUNT(CASE WHEN b.transactionid IS NULL THEN 1 END) as unassigned_bills,
+
         COALESCE(SUM(b.amount), 0) as total_amount,
         COALESCE(SUM(CASE 
           WHEN EXISTS(
@@ -299,7 +299,6 @@ export const getBillsData = async (req, res) => {
       date: row.date,
       paid_bills: parseInt(row.paid_bills),
       unpaid_bills: parseInt(row.unpaid_bills),
-      unassigned_bills: parseInt(row.unassigned_bills),
       total_amount: parseFloat(row.total_amount),
       paid_amount: parseFloat(row.paid_amount)
     }));

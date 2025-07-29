@@ -36,19 +36,18 @@ const BillsChart = ({ accountId, height = 400 }) => {
     totalBills: 0,
     paidBills: 0,
     unpaidBills: 0,
-    unassignedBills: 0,
     totalAmount: 0,
     paidAmount: 0
   });
 
   const colors = getChartColors();
   
-  const billStatusIcons = {
-    'paid': CheckCircle,
-    'unpaid': Clock,
-    'overdue': XCircle,
-    'unassigned': AlertCircle
-  };
+  // const billStatusIcons = {
+  //   'paid': CheckCircle,
+  //   'unpaid': Clock,
+  //   'overdue': XCircle,
+  //   'unassigned': AlertCircle
+  // };
 
   const fetchBillsData = async () => {
     setLoading(true);
@@ -90,7 +89,7 @@ const BillsChart = ({ accountId, height = 400 }) => {
       totalBills: 0,
       paidBills: 0,
       unpaidBills: 0,
-      unassignedBills: 0,
+
       totalAmount: 0,
       paidAmount: 0
     });
@@ -110,7 +109,7 @@ const BillsChart = ({ accountId, height = 400 }) => {
     // Merge data with intervals to ensure all time points are represented
     const paidData = mergeDataWithIntervals(intervals, data, 'paid_bills');
     const unpaidData = mergeDataWithIntervals(intervals, data, 'unpaid_bills');
-    const unassignedData = mergeDataWithIntervals(intervals, data, 'unassigned_bills');
+
 
     const chartConfig = {
       labels: paidData.map(point => point.x),
@@ -176,7 +175,7 @@ const BillsChart = ({ accountId, height = 400 }) => {
             const dataItem = data[index];
             if (dataItem) {
               return [
-                `Total Bills: ${dataItem.paid_bills + dataItem.unpaid_bills + dataItem.unassigned_bills}`,
+                `Total Bills: ${dataItem.paid_bills + dataItem.unpaid_bills}`,
                 `Total Amount: ${formatCurrency(dataItem.total_amount || 0)}`,
                 `Paid Amount: ${formatCurrency(dataItem.paid_amount || 0)}`
               ];
