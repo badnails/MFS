@@ -5,13 +5,13 @@ import notificationService from '../services/notificationService.js';
 const router = express.Router();
 
 // Get user notifications
-router.get('/:userId', async (req, res) => {
+router.get('/:accountid', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { accountid } = req.params;
     const { limit = 50, offset = 0 } = req.query;
     
     const notifications = await notificationService.getUserNotifications(
-      userId, 
+      accountid, 
       parseInt(limit), 
       parseInt(offset)
     );
@@ -58,11 +58,11 @@ router.patch('/:notificationId/read', async (req, res) => {
 });
 
 // Mark all user notifications as read
-router.patch('/user/:userId/read-all', async (req, res) => {
+router.patch('/user/:accountid/read-all', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { accountid } = req.params;
     
-    const result = await notificationService.markAllAsRead(userId);
+    const result = await notificationService.markAllAsRead(accountid);
     
     res.json({
       success: true,
@@ -72,71 +72,6 @@ router.patch('/user/:userId/read-all', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to mark notifications as read'
-    });
-  }
-});
-
-// Create a new notification (admin/system use)
-router.post('/', async (req, res) => {
-  try {
-    const { recipientId, message, type = 'info', data = {} } = req.body;
-    
-    if (!recipientId || !message) {
-      return res.status(400).json({
-        success: false,
-        error: 'recipientId and message are required'
-      });
-    }
-    
-    const notification = await notificationService.createNotification(
-      recipientId,
-      message,
-      type,
-      data
-    );
-    
-    res.status(201).json({
-      success: true,
-      data: notification
-    });
-  } catch (error) {
-    console.error('Error creating notification:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to create notification'
-    });
-  }
-});
-
-// Create bulk notifications
-router.post('/bulk', async (req, res) => {
-  try {
-    const { recipientIds, message, type = 'info', data = {} } = req.body;
-    
-    if (!recipientIds || !Array.isArray(recipientIds) || !message) {
-      return res.status(400).json({
-        success: false,
-        error: 'recipientIds (array) and message are required'
-      });
-    }
-    
-    const notifications = await notificationService.createBulkNotification(
-      recipientIds,
-      message,
-      type,
-      data
-    );
-    
-    res.status(201).json({
-      success: true,
-      data: notifications,
-      count: notifications.length
-    });
-  } catch (error) {
-    console.error('Error creating bulk notifications:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to create bulk notifications'
     });
   }
 });

@@ -3,7 +3,7 @@ import { toast } from 'react-toastify';
 import socketService from './socketService.js';
 import axios from 'axios';
 import { triggerReload } from '../hooks/useDataReload';
-import { ChartNoAxesColumnDecreasing } from 'lucide-react';
+import notificationFormatter from '../utils/notificationFormatter.js';
 
 class NotificationService {
   constructor() {
@@ -28,13 +28,15 @@ class NotificationService {
     this.loadNotifications(userId);
     
     this.isInitialized = true;
-    console.log('✅ Notification service initialized');
   }
 
   // Setup socket listeners for notifications
   setupSocketListeners() {
     socketService.on('notification', (data) => {
-      this.handleIncomingNotification(data);
+      // Handle async notification processing
+      this.handleIncomingNotification(data).catch(error => {
+        console.error('Error handling socket notification:', error);
+      });
     });
 
     socketService.on('connect', () => {
@@ -46,29 +48,102 @@ class NotificationService {
     });
   }
 
-  // Handle incoming notifications
-  handleIncomingNotification(data) {
-    const notification = {
-      id: data.id,
-      message: data.message,
-      type: data.type || 'info',
-      data: data.data || {},
-      timestamp: data.timestamp || new Date().toISOString(),
-      read: false
-    };
+  // Handle incoming notifications from backend (raw data)
+  async handleIncomingNotification(data) {
+    
+    try {
+      // Format the raw notification data (now synchronous)
+      const formattedNotification = notificationFormatter.formatNotification(data);
+      
+      // Add to local notifications array
+      this.notifications.unshift(formattedNotification);
+      this.unreadCount++;
 
-    this.notifications.unshift(notification);
-    this.unreadCount++;
+      // For transaction notifications, fetch details and show toast
+      if (formattedNotification.type === 'TRX_CREDIT' || formattedNotification.type === 'TRX_DEBIT') {
+        this.handleTransactionNotification(formattedNotification);
+      } else {
+        // For non-transaction notifications, show basic toast
+        this.showToast(formattedNotification);
+      }
 
-    // Show toast notification
-    this.showToast(notification);
+      // Notify all listeners
+      this.notifyListeners();
 
-    // Notify all listeners
-    this.notifyListeners();
+      // Trigger data reload for non-error notifications
+      if (formattedNotification.type !== 'error') {
+        triggerReload();
+      }
+    } catch (error) {
+      console.error('❌ Error handling incoming notification:', error);
+      
+      // Fallback: create a basic notification
+      const fallbackNotification = {
+        id: data.notificationid || Date.now(),
+        notificationid: data.notificationid,
+        accountid: data.accountid,
+        type: data.notification_type || 'info',
+        data: data.notification_data || {},
+        timestamp: data.created_at || new Date().toISOString(),
+        created_at: data.created_at,
+        read_at: data.read_at,
+        message: 'New notification received',
+        read: false
+      };
 
-    // Trigger data reload
-    if (notification.type !== 'error') {
-      triggerReload();
+      this.notifications.unshift(fallbackNotification);
+      this.unreadCount++;
+      this.showToast(fallbackNotification);
+      this.notifyListeners();
+    }
+  }
+
+  // Handle transaction notifications with detail fetching
+  async handleTransactionNotification(notification) {
+    try {
+      const transactionId = notification.data?.transactionid;
+      
+      if (transactionId) {
+        // Fetch transaction details for toast
+        const transactionDetails = await notificationFormatter.getTransactionDetails(transactionId);
+        
+        if (transactionDetails) {
+          // Update notification with detailed message
+          const detailedMessage = notificationFormatter.createMessage(
+            notification.type,
+            transactionDetails
+          );
+          
+          // Update the notification in the array
+          const notificationIndex = this.notifications.findIndex(n => 
+            n.notificationid === notification.notificationid
+          );
+          
+          if (notificationIndex !== -1) {
+            this.notifications[notificationIndex] = {
+              ...this.notifications[notificationIndex],
+              message: detailedMessage,
+              transactionDetails
+            };
+          }
+
+          // Show toast with detailed message
+          this.showToast({
+            ...notification,
+            message: detailedMessage
+          });
+        } else {
+          // Fallback to basic toast if details fetch failed
+          this.showToast(notification);
+        }
+      } else {
+        // No transaction ID, show basic toast
+        this.showToast(notification);
+      }
+    } catch (error) {
+      console.error('❌ Error handling transaction notification:', error);
+      // Fallback to basic toast
+      this.showToast(notification);
     }
   }
 
@@ -84,10 +159,10 @@ class NotificationService {
     };
 
     switch (notification.type) {
-      case 'CREDIT':
+      case 'TRX_CREDIT':
         toast.success(notification.message, toastOptions);
         break;
-      case 'DEBIT':
+      case 'TRX_DEBIT':
         toast.success(notification.message, toastOptions);
         break;
       case 'error':
@@ -107,7 +182,12 @@ class NotificationService {
       const response = await axios.get(`/notifications/${userId}?limit=${limit}`);
       
       if (response.data.success) {
-        this.notifications = response.data.data;
+        // Simple formatting for existing notifications - no heavy processing
+        const formattedNotifications = response.data.data.map(notification => 
+          notificationFormatter.formatNotification(notification)
+        );
+        
+        this.notifications = formattedNotifications;
         this.unreadCount = this.notifications.filter(n => !n.read_at).length;
         this.notifyListeners();
       }
@@ -122,8 +202,11 @@ class NotificationService {
       const response = await axios.patch(`/notifications/${notificationId}/read`);
       
       if (response.data.success) {
-        // Update local state
-        const notification = this.notifications.find(n => n.id === notificationId);
+        // Update local state - look for both id and notificationid
+        const notification = this.notifications.find(n => 
+          n.id === notificationId || n.notificationid === notificationId
+        );
+        
         if (notification && !notification.read_at) {
           notification.read_at = new Date().toISOString();
           this.unreadCount = Math.max(0, this.unreadCount - 1);
@@ -195,16 +278,6 @@ class NotificationService {
     });
   }
 
-  // Send custom notification (for testing or internal use)
-  sendCustomNotification(message, type = 'info', data = {}) {
-    this.handleIncomingNotification({
-      message,
-      type,
-      data,
-      timestamp: new Date().toISOString()
-    });
-  }
-
   // Cleanup
   cleanup() {
     socketService.disconnect();
@@ -212,7 +285,6 @@ class NotificationService {
     this.unreadCount = 0;
     this.listeners.clear();
     this.isInitialized = false;
-    console.log('✅ Notification service cleaned up');
   }
 }
 

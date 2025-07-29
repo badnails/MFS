@@ -71,7 +71,6 @@ export const adminSidebarConfig = {
     { id: 'balance', label: 'Balance Update', icon: CreditCard },
     { id: 'float-requests', label: 'Float Requests', icon: Clock },
     { id: 'accounts', label: 'Accounts', icon: Users },
-    { id: 'transactions', label: 'Transactions', icon: History },
-    { id: 'settings', label: 'Settings', icon: Settings }
+    { id: 'transactions', label: 'Transactions', icon: History }
   ]
 };

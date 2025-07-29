@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import SidebarLayout from '../layouts/SidebarLayout';
 import BalanceUpdate from './BalanceUpdate';
 import AccountsManagement from './AccountsManagement';
-import TransactionsView from './TransactionsView';
+import AdminTransactionHistory from './AdminTransactionHistory';
 import AdminOverview from './AdminOverview';
 import FloatRequestsManagement from './FloatRequestsManagement';
 import { adminSidebarConfig } from '../../config/sidebarConfigs';
@@ -26,7 +26,7 @@ const AdminDashboard = () => {
       case 'accounts':
         return <AccountsManagement />;
       case 'transactions':
-        return <TransactionsView />;
+        return <AdminTransactionHistory />;
       default:
         return <AdminOverview />;
     }

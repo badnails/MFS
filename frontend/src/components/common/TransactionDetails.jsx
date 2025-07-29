@@ -13,7 +13,11 @@ import {
   Hash,
   Loader,
   Copy,
-  Check
+  Check,
+  RotateCcw,
+  ArrowDown,
+  ArrowUp,
+  ChartNoAxesColumnDecreasingIcon
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -22,6 +26,9 @@ const TransactionDetails = ({ transactionId, onClose, isOpen }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [showRevertModal, setShowRevertModal] = useState(false);
+  const [revertData, setRevertData] = useState(null);
+  const [revertLoading, setRevertLoading] = useState(false);
   const { user } = useAuth();
 
   const fetchTransactionDetails = useCallback(async () => {
@@ -77,6 +84,14 @@ const TransactionDetails = ({ transactionId, onClose, isOpen }) => {
           bg: 'bg-red-100',
           border: 'border-red-200',
           label: 'Failed'
+        };
+      case 'REVERTED':
+        return { 
+          icon: RotateCcw, 
+          color: 'text-purple-600', 
+          bg: 'bg-purple-100',
+          border: 'border-purple-200',
+          label: 'Reverted'
         };
       case 'FAILED_TIMEOUT':
         return { 
@@ -157,6 +172,66 @@ const TransactionDetails = ({ transactionId, onClose, isOpen }) => {
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+  };
+
+  const isAdmin = () => {
+    return user && user.accounttype === 'ADMIN';
+  };
+
+  const canRevert = () => {
+    return isAdmin() && transaction && transaction.status === 'COMPLETED';
+  };
+
+  const handleRevertClick = async () => {
+    if (!transactionId) return;
+
+    try {
+      setRevertLoading(true);
+      const response = await axios.post('/admin/check-revert', {
+        transactionId: transactionId
+      });
+
+      if (response.data.valid) {
+        setRevertData(response.data);
+        setShowRevertModal(true);
+      } else {
+        alert(response.data.message);
+      }
+    } catch (err) {
+      console.error('Error checking revert eligibility:', err);
+      alert('Failed to check revert eligibility');
+    } finally {
+      setRevertLoading(false);
+    }
+  };
+
+  const handleRevertConfirm = async () => {
+    if (!transactionId || !user) return;
+
+    try {
+      setRevertLoading(true);
+      const response = await axios.post('/admin/execute-revert', {
+        transactionId: transactionId,
+        reverterAccountId: user.accountid,
+        revertType: 'ADMIN_REVERT'
+      });
+      if (response.data.valid) {
+        alert('Transaction reverted successfully');
+        setShowRevertModal(false);
+        onClose(); // Close the transaction details modal
+        // Optionally trigger a refresh of the transaction history
+        if (window.location.pathname.includes('admin')) {
+          window.location.reload(); // Simple refresh for now
+        }
+      } else {
+        alert(response.data.message);
+      }
+    } catch (err) {
+      console.log('Error executing revert:', err);
+      alert('Failed to execute revert');
+    } finally {
+      setRevertLoading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -389,7 +464,119 @@ const TransactionDetails = ({ transactionId, onClose, isOpen }) => {
             </div>
           )}
         </div>
+
+        {/* Footer with Revert Button (Admin Only) */}
+        {canRevert() && (
+          <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+            <button
+              onClick={handleRevertClick}
+              disabled={revertLoading}
+              className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {revertLoading ? (
+                <Loader className="h-4 w-4 animate-spin" />
+              ) : (
+                <RotateCcw className="h-4 w-4" />
+              )}
+              <span>{revertLoading ? 'Processing...' : 'Revert Transaction'}</span>
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Revert Confirmation Modal */}
+      {showRevertModal && revertData && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[160] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Confirm Transaction Revert</h3>
+            </div>
+            
+            <div className="px-6 py-4">
+              {revertData.canRevert ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-600">
+                    Are you sure you want to revert this transaction? This will transfer {formatCurrency(revertData.transaction.amount)} back to {revertData.transaction.sourceUsername}.
+                  </p>
+                  
+                  <div className="space-y-3">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <h4 className="font-medium text-gray-900 mb-2">Balance Changes:</h4>
+                      
+                      {/* Source Account (Original Sender) */}
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-600">{revertData.transaction.sourceUsername}:</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-900">{formatCurrency(revertData.transaction.sourceCurrentBalance)}</span>
+                          <ArrowRight className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-600">{formatCurrency(revertData.transaction.sourceFutureBalance)}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Destination Account (Original Receiver) */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">{revertData.transaction.destinationUsername}:</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-900">{formatCurrency(revertData.transaction.destinationCurrentBalance)}</span>
+                          <ArrowRight className="h-4 w-4 text-red-600" />
+                          <span className="text-sm font-medium text-red-600">{formatCurrency(revertData.transaction.destinationFutureBalance)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <XCircle className="h-8 w-8 text-red-600" />
+                    <div>
+                      <h4 className="font-medium text-gray-900">Revert Not Possible</h4>
+                      <p className="text-sm text-gray-600">{revertData.message}</p>
+                    </div>
+                  </div>
+                  
+                  {revertData.transaction && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <div className="text-sm">
+                        <div className="flex justify-between mb-1">
+                          <span className="text-red-700">Required amount:</span>
+                          <span className="font-medium text-red-900">{formatCurrency(revertData.transaction.amount)}</span>
+                        </div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-red-700">Available balance:</span>
+                          <span className="font-medium text-red-900">{formatCurrency(revertData.transaction.destinationBalance)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-red-700">Shortfall:</span>
+                          <span className="font-medium text-red-900">{formatCurrency(revertData.transaction.shortfall)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+              <button
+                onClick={() => setShowRevertModal(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              {revertData.canRevert && (
+                <button
+                  onClick={handleRevertConfirm}
+                  disabled={revertLoading}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {revertLoading ? 'Processing...' : 'Confirm Revert'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

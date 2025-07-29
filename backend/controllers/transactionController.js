@@ -454,3 +454,239 @@ export async function getTransactionTypes(req, res) {
     });
   }
 }
+
+export async function checkRevertEligibility(req, res) {
+  try {
+    const { transactionId } = req.body;
+
+    if (!transactionId) {
+      return res.status(400).json({
+        valid: false,
+        message: "Transaction ID is required",
+      });
+    }
+
+    // Get transaction details
+    const transactionQuery = `
+      SELECT 
+        t.transactionid,
+        t.transactionstatus,
+        t.sourceaccountid,
+        t.destinationaccountid,
+        t.subamount,
+        t.feesamount,
+        src_acc.username as source_username,
+        dest_acc.username as destination_username,
+        dest_acc.availablebalance as destination_balance
+      FROM transactions t
+      LEFT JOIN accounts src_acc ON t.sourceaccountid = src_acc.accountid
+      LEFT JOIN accounts dest_acc ON t.destinationaccountid = dest_acc.accountid
+      WHERE t.transactionid = $1
+    `;
+
+    const transactionResult = await pool.query(transactionQuery, [transactionId]);
+
+    if (transactionResult.rows.length === 0) {
+      return res.status(404).json({
+        valid: false,
+        message: "Transaction not found",
+      });
+    }
+
+    const transaction = transactionResult.rows[0];
+
+    // Check if transaction is completed
+    if (transaction.transactionstatus !== 'COMPLETED') {
+      return res.status(400).json({
+        valid: false,
+        message: "Only completed transactions can be reverted",
+      });
+    }
+
+    // Check if transaction has already been reverted
+    if (transaction.transactionstatus === 'REVERTED') {
+      return res.status(400).json({
+        valid: false,
+        message: "Transaction has already been reverted",
+      });
+    }
+
+    // Check if destination account has sufficient balance
+    const destinationBalance = parseFloat(transaction.destination_balance);
+    const revertAmount = parseFloat(transaction.subamount);
+
+    if (destinationBalance < revertAmount) {
+      return res.status(200).json({
+        valid: false,
+        canRevert: false,
+        message: "Destination account has insufficient balance for reversion",
+        transaction: {
+          id: transaction.transactionid,
+          sourceUsername: transaction.source_username,
+          destinationUsername: transaction.destination_username,
+          amount: revertAmount,
+          destinationBalance: destinationBalance,
+          shortfall: revertAmount - destinationBalance
+        }
+      });
+    }
+
+    // Get source account balance for display
+    const sourceBalanceQuery = `
+      SELECT availablebalance FROM accounts WHERE accountid = $1
+    `;
+    const sourceBalanceResult = await pool.query(sourceBalanceQuery, [transaction.sourceaccountid]);
+    const sourceBalance = parseFloat(sourceBalanceResult.rows[0]?.availablebalance || 0);
+
+    return res.status(200).json({
+      valid: true,
+      canRevert: true,
+      message: "Transaction can be reverted",
+      transaction: {
+        id: transaction.transactionid,
+        sourceUsername: transaction.source_username,
+        destinationUsername: transaction.destination_username,
+        amount: revertAmount,
+        sourceCurrentBalance: sourceBalance,
+        destinationCurrentBalance: destinationBalance,
+        sourceFutureBalance: sourceBalance + revertAmount,
+        destinationFutureBalance: destinationBalance - revertAmount
+      }
+    });
+
+  } catch (error) {
+    console.error("Error checking revert eligibility:", error);
+    return res.status(500).json({
+      valid: false,
+      message: "Internal Server Error",
+    });
+  }
+}
+
+export async function executeRevert(req, res) {
+  try {
+    const { transactionId, reverterAccountId, revertType = 'ADMIN_REVERT' } = req.body;
+
+    if (!transactionId || !reverterAccountId) {
+      return res.status(400).json({
+        valid: false,
+        message: "Transaction ID and reverter account ID are required",
+      });
+    }
+    console.log("here1");
+
+    // Get original transaction details
+    const transactionQuery = `
+      SELECT 
+        t.transactionid,
+        t.transactionstatus,
+        t.sourceaccountid,
+        t.destinationaccountid,
+        t.subamount,
+        t.feesamount
+      FROM transactions t
+      WHERE t.transactionid = $1
+    `;
+
+    const transactionResult = await pool.query(transactionQuery, [transactionId]);
+
+    if (transactionResult.rows.length === 0) {
+      return res.status(404).json({
+        valid: false,
+        message: "Transaction not found",
+      });
+    }
+
+    const originalTransaction = transactionResult.rows[0];
+
+    // Double-check eligibility
+    if (originalTransaction.transactionstatus !== 'COMPLETED') {
+      return res.status(400).json({
+        valid: false,
+        message: "Only completed transactions can be reverted",
+      });
+    }
+    console.log("here2");
+
+    // Check if already reverted
+    if (originalTransaction.transactionstatus === 'REVERTED') {
+      return res.status(400).json({
+        valid: false,
+        message: "Transaction has already been reverted",
+      });
+    }
+    console.log("here3");
+
+    // Create revert transaction
+    const createTrxQuery = `SELECT create_trx_id($1, $2, $3, $4)`;
+    const createTrxResult = await pool.query(createTrxQuery, [
+      originalTransaction.sourceaccountid,
+      'TRX_REVERT',
+      originalTransaction.subamount,
+      0
+    ]);
+
+    console.log(createTrxResult.rows[0].create_trx_id);
+
+    if (!createTrxResult.rows[0].create_trx_id.valid) {
+      return res.status(400).json({
+        valid: false,
+        message: createTrxResult.rows[0].create_trx_id.message || "Failed to create revert transaction",
+      });
+    }
+    console.log("here4");
+
+    const revertTransactionId = createTrxResult.rows[0].create_trx_id.transactionid;
+
+    // Finalize the revert transaction
+    const finalizeQuery = `SELECT * FROM finalize_transaction($1, $2)`;
+    const finalizeResult = await pool.query(finalizeQuery, [
+      revertTransactionId,
+      originalTransaction.destinationaccountid
+    ]);
+
+    if (finalizeResult.rows.length === 0 || !finalizeResult.rows[0].finalize_transaction.valid) {
+      return res.status(400).json({
+        valid: false,
+        message: finalizeResult.rows[0]?.finalize_transaction?.message || "Failed to finalize revert transaction",
+      });
+    }
+    console.log("here5");
+
+    // Record the revert in transaction_reverts table
+    const recordRevertQuery = `
+      INSERT INTO transaction_reverts 
+      (original_trx_id, revert_trx_id, reverter_account_id, revert_type)
+      VALUES ($1, $2, $3, $4)
+    `;
+    
+    await pool.query(recordRevertQuery, [
+      transactionId,
+      revertTransactionId,
+      reverterAccountId,
+      revertType
+    ]);
+
+    // Update original transaction status to REVERTED
+    const updateStatusQuery = `
+      UPDATE transactions 
+      SET transactionstatus = 'REVERTED' 
+      WHERE transactionid = $1
+    `;
+    
+    await pool.query(updateStatusQuery, [transactionId]);
+
+    return res.status(200).json({
+      valid: true,
+      message: "Transaction reverted successfully",
+      revertTransactionId: revertTransactionId
+    });
+
+  } catch (error) {
+    console.error("Error executing revert:", error);
+    return res.status(500).json({
+      valid: false,
+      message: "Internal Server Error",
+    });
+  }
+}

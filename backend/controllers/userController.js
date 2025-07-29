@@ -187,24 +187,6 @@ export const getUserBalance = async (req, res) => {
   }
 };
 
-export const get_notifications = async (req, res) => {
-  const accountId = req.user?.accountid;
-
-  try {
-    const result = await pool.query(
-      "SELECT * FROM get_recent_notifications($1)",
-      [accountId]
-    );
-
-    const notifications = result.rows;
-    res.json({ notifications });
-  } catch (error) {
-    console.error("Error fetching notifications:", error);
-    res.status(500).json({ error: "Failed to retrieve notifications" });
-  }
-};
-
-
 export const getBills = async(req, res) => {
     const customerId = req.user.accountid;
   const billerId = req.params.accountid;

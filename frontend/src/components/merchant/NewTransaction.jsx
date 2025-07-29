@@ -13,7 +13,6 @@ const NewTransaction = ({ onClose }) => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [step, setStep] = useState(1); // 1: Form, 2: Success with QR
   const [transactionData, setTransactionData] = useState(null);
-  const [qrCodeUrl, setQrCodeUrl] = useState('');
 
   // Calculate fees when amount changes
   useEffect(() => {
@@ -73,20 +72,23 @@ const NewTransaction = ({ onClose }) => {
       const transactionId = response.data.transactionid;
       
       // Create QR code data with metadata
-      const qrData = {
-        transactionId,
-        transactionType: 'PAYMENT',
-        mode: 'QR',
-        merchantId: user.accountid,
-        merchantName: user.accountname,
-        amount: amtValue,
-        fee: fee,
-        total: amtValue + fee,
-        timestamp: new Date().toISOString()
-      };
+      const webappQrData = transactionId; // Simple transaction ID only
+      
+      // Create gateway payment link
+      const gatewayQrData = `https://tpg-six.vercel.app/gateway?transactionid=${transactionId}`;
 
-      // Generate actual QR code
-      const qrCodeDataUrl = await QRCodeLib.toDataURL(JSON.stringify(qrData), {
+      // Generate webapp QR code (transaction ID only)
+      const webappQrCodeUrl = await QRCodeLib.toDataURL(webappQrData, {
+        width: 256,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+
+      // Generate gateway QR code (payment link)
+      const gatewayQrCodeUrl = await QRCodeLib.toDataURL(gatewayQrData, {
         width: 256,
         margin: 2,
         color: {
@@ -100,11 +102,11 @@ const NewTransaction = ({ onClose }) => {
         amount: amtValue,
         fee,
         total: amtValue + fee,
-        qrData: JSON.stringify(qrData),
-        qrUrl: `/merchant-payment?data=${encodeURIComponent(JSON.stringify(qrData))}`
+        webappQrData,
+        gatewayQrData,
+        webappQrUrl: webappQrCodeUrl,
+        gatewayQrUrl: gatewayQrCodeUrl
       });
-      
-      setQrCodeUrl(qrCodeDataUrl);
       
       setStep(2);
       setMessage({ type: 'success', text: 'Transaction created successfully!' });
@@ -127,17 +129,6 @@ const NewTransaction = ({ onClose }) => {
       console.error('Failed to copy:', err);
       setMessage({ type: 'error', text: 'Failed to copy to clipboard' });
     }
-  };
-
-  const downloadQR = () => {
-    // Download the actual QR code image
-    const link = document.createElement('a');
-    link.download = `transaction-${transactionData.transactionId}-qr.png`;
-    link.href = qrCodeUrl;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setMessage({ type: 'success', text: 'QR code downloaded!' });
   };
 
   const formatCurrency = (amount) => {
@@ -263,75 +254,132 @@ const NewTransaction = ({ onClose }) => {
                 </p>
               </div>
 
-              {/* Transaction Details */}
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Transaction ID:</span>
-                  <div className="flex items-center space-x-2">
-                    <span className="font-mono text-sm">{transactionData.transactionId}</span>
+              {/* Transaction ID Prominent Box */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Transaction ID</label>
+                  <div className="bg-gray-50 border border-gray-300 rounded-lg p-4 flex items-center justify-between">
+                    <span className="font-mono text-lg font-medium text-gray-900 break-all">{transactionData.transactionId}</span>
                     <button
                       onClick={() => copyToClipboard(transactionData.transactionId)}
-                      className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                      className="ml-3 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
                       title="Copy Transaction ID"
                     >
-                      <Copy className="h-4 w-4" />
+                      <Copy className="h-5 w-5" />
                     </button>
                   </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Amount:</span>
-                  <span className="font-medium">{formatCurrency(transactionData.amount)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Fee:</span>
-                  <span className="font-medium">{formatCurrency(transactionData.fee)}</span>
-                </div>
-                <div className="flex justify-between font-medium">
-                  <span className="text-gray-900">Total:</span>
-                  <span className="text-gray-900">{formatCurrency(transactionData.total)}</span>
+
+                {/* Transaction Details */}
+                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Amount:</span>
+                    <span className="font-medium">{formatCurrency(transactionData.amount)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Fee:</span>
+                    <span className="font-medium">{formatCurrency(transactionData.fee)}</span>
+                  </div>
+                  <div className="flex justify-between font-medium">
+                    <span className="text-gray-900">Total:</span>
+                    <span className="text-gray-900">{formatCurrency(transactionData.total)}</span>
+                  </div>
                 </div>
               </div>
 
               {/* QR Code Section */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-medium text-blue-800 mb-3 flex items-center">
-                  <QrCode className="h-5 w-5 mr-2" />
-                  QR Code for Payment
-                </h4>
-                <div className="text-center">
-                  <div className="bg-white p-6 rounded-lg border border-gray-200 inline-block mb-4">
-                    {qrCodeUrl ? (
-                      <img 
-                        src={qrCodeUrl} 
-                        alt="Transaction QR Code" 
-                        className="w-32 h-32 mx-auto mb-2"
-                      />
-                    ) : (
-                      <QrCode className="h-32 w-32 text-gray-400 mx-auto mb-2" />
-                    )}
-                    <p className="text-sm text-gray-600">Transaction QR Code</p>
-                    <p className="text-xs text-gray-500">Customer can scan to pay</p>
-                  </div>
-                  <div className="flex space-x-2 justify-center">
-                    <button
-                      onClick={() => copyToClipboard(transactionData.qrData)}
-                      className="flex items-center space-x-1 px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
-                    >
-                      <Copy className="h-4 w-4" />
-                      <span>Copy QR Data</span>
-                    </button>
-                    <button
-                      onClick={downloadQR}
-                      className="flex items-center space-x-1 px-3 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
-                    >
-                      <Download className="h-4 w-4" />
-                      <span>Download QR</span>
-                    </button>
+              <div className="space-y-6">
+                {/* Webapp Payment QR */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-800 mb-3 flex items-center">
+                    <QrCode className="h-5 w-5 mr-2" />
+                    Webapp Payment
+                  </h4>
+                  <div className="text-center">
+                    <div className="bg-white p-4 rounded-lg border border-gray-200 inline-block mb-3">
+                      {transactionData.webappQrUrl ? (
+                        <img 
+                          src={transactionData.webappQrUrl} 
+                          alt="Webapp Payment QR Code" 
+                          className="w-32 h-32 mx-auto"
+                        />
+                      ) : (
+                        <QrCode className="h-32 w-32 text-gray-400 mx-auto" />
+                      )}
+                    </div>
+                    <p className="text-sm text-blue-700 mb-3">Customer scans to pay via webapp</p>
+                    <div className="flex space-x-2 justify-center">
+                      <button
+                        onClick={() => copyToClipboard(transactionData.webappQrData)}
+                        className="flex items-center space-x-1 px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                      >
+                        <Copy className="h-4 w-4" />
+                        <span>Copy QR Data</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.download = `webapp-qr-${transactionData.transactionId}.png`;
+                          link.href = transactionData.webappQrUrl;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          setMessage({ type: 'success', text: 'Webapp QR downloaded!' });
+                        }}
+                        className="flex items-center space-x-1 px-3 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                      >
+                        <Download className="h-4 w-4" />
+                        <span>Download QR</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <p className="text-blue-700 text-xs mt-3 text-center">
-                  Share the transaction ID or let customer scan the QR code to complete payment
-                </p>
+
+                {/* Gateway Payment QR */}
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <h4 className="font-medium text-purple-800 mb-3 flex items-center">
+                    <QrCode className="h-5 w-5 mr-2" />
+                    Gateway Payment
+                  </h4>
+                  <div className="text-center">
+                    <div className="bg-white p-4 rounded-lg border border-gray-200 inline-block mb-3">
+                      {transactionData.gatewayQrUrl ? (
+                        <img 
+                          src={transactionData.gatewayQrUrl} 
+                          alt="Gateway Payment QR Code" 
+                          className="w-32 h-32 mx-auto"
+                        />
+                      ) : (
+                        <QrCode className="h-32 w-32 text-gray-400 mx-auto" />
+                      )}
+                    </div>
+                    <p className="text-sm text-purple-700 mb-3">Customer scans to pay via gateway</p>
+                    <div className="flex space-x-2 justify-center">
+                      <button
+                        onClick={() => copyToClipboard(transactionData.gatewayQrData)}
+                        className="flex items-center space-x-1 px-3 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 transition-colors"
+                      >
+                        <Copy className="h-4 w-4" />
+                        <span>Copy Link</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.download = `gateway-qr-${transactionData.transactionId}.png`;
+                          link.href = transactionData.gatewayQrUrl;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          setMessage({ type: 'success', text: 'Gateway QR downloaded!' });
+                        }}
+                        className="flex items-center space-x-1 px-3 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                      >
+                        <Download className="h-4 w-4" />
+                        <span>Download QR</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {message.text && (

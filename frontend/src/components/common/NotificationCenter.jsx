@@ -1,9 +1,10 @@
 // components/NotificationCenter.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Bell, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import socketService from '../../services/socketService.js';
+import notificationFormatter from '../../utils/notificationFormatter.js';
 
 const NotificationCenter = () => {
   const { user } = useAuth();
@@ -18,6 +19,7 @@ const NotificationCenter = () => {
   
   const [isOpen, setIsOpen] = useState(false);
   const [socketStatus, setSocketStatus] = useState({ isConnected: false });
+  const [detailedNotifications, setDetailedNotifications] = useState({});
 
   // Monitor socket connection status
   useEffect(() => {
@@ -31,14 +33,77 @@ const NotificationCenter = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Load detailed messages when notification center is opened
+  const loadDetailedMessages = useCallback(async () => {
+    const transactionNotifications = notifications.filter(n => 
+      (n.type === 'TRX_CREDIT' || n.type === 'TRX_DEBIT') && 
+      n.data?.transactionid &&
+      !detailedNotifications[n.notificationid]
+    );
+
+    if (transactionNotifications.length === 0) return;
+
+          const detailed = {};
+          await Promise.all(
+            transactionNotifications.map(async (notification) => {
+              try {
+                const transactionDetails = await notificationFormatter.getTransactionDetails(
+                  notification.data.transactionid
+                );
+                if (transactionDetails) {
+                  detailed[notification.notificationid] = {
+                    ...notification,
+                    message: notificationFormatter.createMessage(notification.type, transactionDetails),
+                    transactionDetails,
+                    fee: parseFloat(transactionDetails.feesamount || 0),
+                    formattedTransactionType: notificationFormatter.formatTransactionType(transactionDetails.type)
+                  };
+                }
+              } catch (error) {
+                console.error('Error loading detailed notification:', error);
+              }
+            })
+          );    setDetailedNotifications(prev => ({ ...prev, ...detailed }));
+  }, [notifications, detailedNotifications]);
+
+  useEffect(() => {
+    if (isOpen && notifications.length > 0) {
+      loadDetailedMessages();
+    }
+  }, [isOpen, notifications.length, loadDetailedMessages]);
+
+  const getDisplayNotification = (notification) => {
+    const detailed = detailedNotifications[notification.notificationid];
+    if (detailed) {
+      // Merge the current notification state (especially read_at) with detailed data
+      // This ensures UI updates immediately when notifications are marked as read
+      return {
+        ...detailed,
+        read_at: notification.read_at, // Always use current read status
+        timestamp: notification.timestamp,
+        created_at: notification.created_at
+      };
+    }
+    return notification;
+  };
+
   const handleNotificationClick = async (notification) => {
-    if (!notification.read_at) {
-      await markAsRead(notification.notificationid);
+    try {
+      if (!notification.read_at) {
+        // Mark as read - the notification service will update the main notifications array
+        await markAsRead(notification.notificationid);
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
     }
   };
 
   const handleMarkAllAsRead = async () => {
-    await markAllAsRead();
+    try {
+      await markAllAsRead();
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
   };
 
   const formatTime = (timestamp) => {
@@ -54,24 +119,36 @@ const NotificationCenter = () => {
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case 'DEBIT':
-        return <ArrowUpRight className="w-4 h-4 text-red-600" />;
-      case 'CREDIT':
+      case 'TRX_CREDIT':
         return <ArrowDownLeft className="w-4 h-4 text-green-600" />;
+      case 'TRX_DEBIT':
+        return <ArrowUpRight className="w-4 h-4 text-red-600" />;
       default:
         return '📧';
     }
   };
 
   const getNotificationBgColor = (type, isRead) => {
-    const baseColor = isRead ? 'bg-gray-50' : 'bg-blue-50';
-    switch (type) {
-      case 'DEBIT':
-        return isRead ? 'bg-red-50' : 'bg-red-100';
-      case 'CREDIT':
-        return isRead ? 'bg-green-50' : 'bg-green-100';
-      default:
-        return baseColor;
+    if (isRead) {
+      // Read notifications - subtle backgrounds
+      switch (type) {
+        case 'TRX_DEBIT':
+          return 'bg-red-50/30 border-l-4 border-red-200';
+        case 'TRX_CREDIT':
+          return 'bg-green-50/30 border-l-4 border-green-200';
+        default:
+          return 'bg-gray-50/30 border-l-4 border-gray-200';
+      }
+    } else {
+      // Unread notifications - more prominent backgrounds
+      switch (type) {
+        case 'TRX_DEBIT':
+          return 'bg-red-50 border-l-4 border-red-400';
+        case 'TRX_CREDIT':
+          return 'bg-green-50 border-l-4 border-green-400';
+        default:
+          return 'bg-blue-50 border-l-4 border-blue-400';
+      }
     }
   };
 
@@ -135,38 +212,57 @@ const NotificationCenter = () => {
                 <p className="text-sm">No notifications yet</p>
               </div>
             ) : (
-              notifications.map((notification) => (
-                <div
-                  key={notification.notificationid}
-                  onClick={() => handleNotificationClick(notification)}
-                  className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors last:border-b-0 ${getNotificationBgColor(
-                    notification.notification_type,
-                    notification.read_at
-                  )}`}
-                >
-                  <div className="flex items-start space-x-3">
-                    <div className="text-lg flex-shrink-0 mt-0.5">
-                      {getNotificationIcon(notification.notification_type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-900 leading-relaxed">
-                        {notification.message}
-                      </p>
-                      {notification.transactiontype && (
-                        <p className="text-xs text-gray-600 mt-1 font-medium">
-                          Method: {notification.transactiontype} 
+              notifications.map((notification, index) => {
+                const displayNotification = getDisplayNotification(notification);
+                const isLast = index === notifications.length - 1;
+                return (
+                  <div
+                    key={notification.notificationid}
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`p-4 hover:bg-gray-50/50 cursor-pointer transition-all duration-200 ${
+                      !isLast ? 'border-b border-gray-150' : ''
+                    } ${getNotificationBgColor(
+                      displayNotification.type,
+                      displayNotification.read_at
+                    )} hover:shadow-sm`}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <div className="text-lg flex-shrink-0 mt-1">
+                        {getNotificationIcon(displayNotification.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm leading-relaxed ${
+                          displayNotification.read_at ? 'text-gray-700' : 'text-gray-900 font-medium'
+                        }`}>
+                          {displayNotification.message}
                         </p>
+                        
+                        {/* Transaction Type - Show for transaction notifications */}
+                        {(displayNotification.type === 'TRX_CREDIT' || displayNotification.type === 'TRX_DEBIT') && 
+                         displayNotification.formattedTransactionType && (
+                          <p className="text-xs text-gray-500 mt-1.5 font-normal">
+                            {displayNotification.formattedTransactionType}
+                          </p>
+                        )}
+                        
+                        {/* Legacy transaction type display (fallback) */}
+                        {displayNotification.transactiontype && !displayNotification.formattedTransactionType && (
+                          <p className="text-xs text-gray-500 mt-1.5 font-normal">
+                            {notificationFormatter.formatTransactionType(displayNotification.transactiontype)}
+                          </p>
+                        )}
+                        
+                        <p className="text-xs text-gray-400 mt-2">
+                          {formatTime(displayNotification.timestamp || displayNotification.created_at)}
+                        </p>
+                      </div>
+                      {!displayNotification.read_at && (
+                        <div className="w-2.5 h-2.5 bg-blue-500 rounded-full flex-shrink-0 mt-2 shadow-sm" title="Unread"></div>
                       )}
-                      <p className="text-xs text-gray-500 mt-1">
-                        {formatTime(notification.timestamp || notification.created_at)}
-                      </p>
                     </div>
-                    {!notification.read_at && (
-                      <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2"></div>
-                    )}
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 

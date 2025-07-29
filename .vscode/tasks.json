@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"command": "cd backend && npm start",
+			"group": "build",
+			"isBackground": true,
+			"label": "Start Backend Server",
+			"problemMatcher": [],
+			"type": "shell"
+		}
+	]
+}

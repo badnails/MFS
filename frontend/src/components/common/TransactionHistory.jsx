@@ -13,7 +13,8 @@ import {
   XCircle,
   AlertCircle,
   RefreshCw,
-  X
+  X,
+  RotateCcw
 } from 'lucide-react';
 import TransactionDetails from './TransactionDetails';
 
@@ -150,6 +151,8 @@ const TransactionHistory = ({ accountId, onClose = null, isModal = false }) => {
         return { icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-100' };
       case 'FAILED':
         return { icon: XCircle, color: 'text-red-600', bg: 'bg-red-100' };
+      case 'REVERTED':
+        return { icon: RotateCcw, color: 'text-purple-600', bg: 'bg-purple-100' };
       default:
         return { icon: AlertCircle, color: 'text-gray-600', bg: 'bg-gray-100' };
     }
@@ -253,6 +256,7 @@ const TransactionHistory = ({ accountId, onClose = null, isModal = false }) => {
                   <option value="COMPLETED">Completed</option>
                   <option value="PENDING">Pending</option>
                   <option value="FAILED">Failed</option>
+                  <option value="REVERTED">Reverted</option>
                 </select>
               </div>
 

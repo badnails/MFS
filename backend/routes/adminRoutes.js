@@ -9,6 +9,10 @@ import {
   updateFloatRequestStatus, 
   getFloatRequestDocument 
 } from '../controllers/admin/floatRequestsController.js';
+import { 
+  checkRevertEligibility, 
+  executeRevert 
+} from '../controllers/transactionController.js';
 
 const router = express.Router();
 
@@ -22,5 +26,9 @@ router.get('/transactions', authenticateJWT, getAllTransactions);
 router.get('/float-requests', authenticateJWT, getAllFloatRequests);
 router.put('/float-request/:requestId/status', authenticateJWT, updateFloatRequestStatus);
 router.get('/float-request-document/:requestId', authenticateJWT, getFloatRequestDocument);
+
+// Transaction revert functionality
+router.post('/check-revert', authenticateJWT, checkRevertEligibility);
+router.post('/execute-revert', authenticateJWT, executeRevert);
 
 export default router;
