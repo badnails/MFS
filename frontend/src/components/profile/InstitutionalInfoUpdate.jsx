@@ -2,12 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import CategorySelector from '../common/CategorySelector';
 import { 
   Building2, 
   Globe, 
   Save, 
   ArrowLeft, 
-  Loader2 
+  Loader2,
+  MapPin
 } from 'lucide-react';
 
 const InstitutionalInfoUpdate = () => {
@@ -17,13 +20,16 @@ const InstitutionalInfoUpdate = () => {
   const [formData, setFormData] = useState({
     merchantname: '',
     websiteurl: '',
-    category_id: 1
+    category_id: 1,
+    institution_category_id: null
   });
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [showCategorySelector, setShowCategorySelector] = useState(false);
 
   useEffect(() => {
     fetchInstitutionalData();
@@ -32,20 +38,26 @@ const InstitutionalInfoUpdate = () => {
   const fetchInstitutionalData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:3000/user/profileData/${user.accountid}`, {
-        headers: {
-          'Authorization': `Bearer ${sessionStorage.getItem('token')}`
-        }
-      });
+      const response = await axios.get(`/user/profileData/${user.accountid}`);
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch institutional data');
-      }
-      
-      const data = await response.json();
+      const data = response.data;
       const institutionalData = data.institutional || {};
       
-      setFormData(institutionalData);
+      setFormData({
+        merchantname: institutionalData.merchantname || '',
+        websiteurl: institutionalData.websiteurl || '',
+        category_id: institutionalData.category_id || 1,
+        institution_category_id: institutionalData.institution_category_id || null
+      });
+      
+      // If there's a selected category, fetch its details for display
+      if (institutionalData.institution_category_id) {
+        setSelectedCategory({
+          id: institutionalData.institution_category_id,
+          category_name: 'Loading...' // Will be updated by CategorySelector
+        });
+      }
+      
       setError('');
     } catch (err) {
       setError('Failed to load institutional data');
@@ -84,6 +96,17 @@ const InstitutionalInfoUpdate = () => {
     return true;
   };
 
+  const handleCategorySelect = (category) => {
+    setSelectedCategory(category);
+    setFormData(prev => ({
+      ...prev,
+      institution_category_id: category.id
+    }));
+    setShowCategorySelector(false);
+    setError('');
+    setSuccess('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -93,27 +116,23 @@ const InstitutionalInfoUpdate = () => {
       setSaving(true);
       setError('');
 
-      const response = await fetch('http://localhost:3000/user/updateProfile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          accountid: user.accountid,
-          tableName: 'institutionalinfo',
-          updates: {
-            merchantname: formData.merchantname,
-            websiteurl: formData.websiteurl || '',
-            category_id: formData.category_id || 1
-          }
-        })
+      // Update basic institutional info
+      const updateResponse = await axios.put('/user/updateProfile', {
+        accountid: user.accountid,
+        tableName: 'institutionalinfo',
+        updates: {
+          merchantname: formData.merchantname,
+          websiteurl: formData.websiteurl || '',
+          category_id: formData.category_id || 1
+        }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Server error response:', errorData);
-        throw new Error(errorData.error || 'Failed to update institutional information');
+      // Update institution category if selected
+      if (formData.institution_category_id) {
+        await axios.post('/auth/update-institution-category', {
+          accountid: user.accountid,
+          categoryId: formData.institution_category_id
+        });
       }
 
       setSuccess('Business information updated successfully!');
@@ -240,6 +259,79 @@ const InstitutionalInfoUpdate = () => {
                 <option value={12}>Other</option>
               </select>
             </div>
+
+            {/* Institution Category Selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Specific Institution Category
+              </label>
+              
+              {selectedCategory ? (
+                <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0">
+                        <MapPin className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-green-800">
+                          Selected Category
+                        </p>
+                        <p className="text-sm text-green-600">
+                          {selectedCategory.category_name}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowCategorySelector(true)}
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Change
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowCategorySelector(true)}
+                  className="w-full flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-md text-sm font-medium text-gray-600 hover:border-gray-400 hover:text-gray-700 transition-colors"
+                >
+                  <MapPin className="h-5 w-5 mr-2" />
+                  Select Institution Category
+                </button>
+              )}
+              
+              <p className="mt-1 text-sm text-gray-500">
+                Choose a specific category that best describes your institution type
+              </p>
+            </div>
+
+            {/* Category Selector Modal */}
+            {showCategorySelector && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
+                  <div className="flex items-center justify-between p-6 border-b">
+                    <h3 className="text-lg font-medium text-gray-900">
+                      Select Institution Category
+                    </h3>
+                    <button
+                      onClick={() => setShowCategorySelector(false)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <ArrowLeft className="h-6 w-6" />
+                    </button>
+                  </div>
+                  <div className="overflow-y-auto">
+                    <CategorySelector
+                      onCategorySelect={handleCategorySelect}
+                      initialCategoryId={formData.institution_category_id}
+                      showBreadcrumb={true}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Information Note */}
             <div className="bg-blue-50 border border-blue-200 rounded-md p-4">

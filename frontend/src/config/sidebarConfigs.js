@@ -26,6 +26,7 @@ export const personalSidebarConfig = {
     { id: 'merchant-payment', label: 'Pay Merchant', icon: Store },
     { id: 'bill-payment', label: 'Pay Bills', icon: Receipt },
     { id: 'transaction-history', label: 'Transaction History', icon: History },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'profile', label: 'Profile', icon: User }
   ]
 };
@@ -37,6 +38,7 @@ export const agentSidebarConfig = {
     { id: 'cash-in', label: 'Cash In', icon: Plus },
     { id: 'add-money', label: 'Add Money', icon: DollarSign },
     { id: 'pending-requests', label: 'Pending Requests', icon: Clock },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'transaction-history', label: 'Transaction History', icon: History }
   ]
 };
@@ -60,7 +62,8 @@ export const billerSidebarConfig = {
     { id: 'create-batch', label: 'Create Bill Batch', icon: Plus },
     { id: 'batch-management', label: 'Batch Management', icon: Settings },
     { id: 'bill-history', label: 'Bill History', icon: History },
-    { id: 'stats', label: 'Statistics', icon: BarChart3 },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'profile', label: 'Profile', icon: User }
   ]
 };
 
@@ -72,6 +75,6 @@ export const adminSidebarConfig = {
     { id: 'float-requests', label: 'Float Requests', icon: Clock },
     { id: 'accounts', label: 'Accounts', icon: Users },
     { id: 'transactions', label: 'Transactions', icon: History },
-    { id: 'settings', label: 'Settings', icon: Settings }
+    { id: 'settings', label: 'Analytics', icon: Settings }
   ]
 };

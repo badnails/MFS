@@ -93,8 +93,9 @@ const ContactInfoUpdate = () => {
         setEmailStatus('loading');
         const response = await fetch(`/auth/check-email/${encodeURIComponent(email)}`);
         const data = await response.json();
-        
-        setEmailStatus(data.available ? 'available' : 'unavailable');
+        if(data.valid === true) setEmailStatus('available');
+        else setEmailStatus('unavailable');
+        //setEmailStatus(data.valid ? 'available' : 'unavailable');
       } catch (error) {
         console.error('Email check error:', error);
         setEmailStatus('idle');
@@ -121,8 +122,9 @@ const ContactInfoUpdate = () => {
         setPhoneStatus('loading');
         const response = await fetch(`http://localhost:3000/auth/check-phone/${encodeURIComponent(phone)}`);
         const data = await response.json();
-        
-        setPhoneStatus(data.available ? 'available' : 'unavailable');
+        if(data.valid === true) setPhoneStatus('available');
+        else setPhoneStatus('unavailable');
+        //setPhoneStatus(data.available ? 'available' : 'unavailable');
       } catch (error) {
         console.error('Phone check error:', error);
         setPhoneStatus('idle');
