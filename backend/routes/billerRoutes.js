@@ -1,5 +1,5 @@
 import express from 'express';
-import { createBillBatch, getBatches, updateBillBatch, getBillerDashboard, getBillerStats, checkBatchNameAvailability, getBillFields, createBills } from '../controllers/billerController.js';
+import { createBillBatch, getBatches, updateBillBatch, getBillerDashboard, getBillerStats, checkBatchNameAvailability, getBillFields, createBills, getBillsForBatch, getBillFieldValues, updateBill, deleteBill } from '../controllers/billerController.js';
 import { authenticateJWT } from '../controllers/authController.js';
 import { getBillsData } from '../controllers/admin/analyticsController.js';
 
@@ -17,6 +17,14 @@ router.put('/bill-batches/:id', authenticateJWT, updateBillBatch);
 router.post('/createbatch', authenticateJWT, createBillBatch);
 router.get('/check-batch-name/:batchname', authenticateJWT, checkBatchNameAvailability);
 router.get('/bill-fields/:batchid', authenticateJWT, getBillFields);
+
+// Bill management routes
+router.get('/bills/:batchid', authenticateJWT, getBillsForBatch);
+router.get('/bill-field-values/:billid', authenticateJWT, getBillFieldValues);
+router.put('/bills/:billid', authenticateJWT, updateBill);
+router.delete('/bills/:billid', authenticateJWT, deleteBill);
+
+// Bill creation routes
 router.post('/create-bills/:batchid', authenticateJWT, createBills);
 
 // Analytics routes for billers

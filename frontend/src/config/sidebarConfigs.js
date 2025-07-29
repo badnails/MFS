@@ -14,7 +14,8 @@ import {
   Settings,
   FileText,
   Briefcase,
-  Clock
+  Clock,
+  Edit
 } from 'lucide-react';
 
 export const personalSidebarConfig = {
@@ -61,6 +62,7 @@ export const billerSidebarConfig = {
     { id: 'assign-bill', label: 'Assign Bill', icon: Receipt },
     { id: 'create-batch', label: 'Create Bill Batch', icon: Plus },
     { id: 'batch-management', label: 'Batch Management', icon: Settings },
+    { id: 'bill-management', label: 'Bill Management', icon: Edit },
     { id: 'bill-history', label: 'Bill History', icon: History },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'profile', label: 'Profile', icon: User }

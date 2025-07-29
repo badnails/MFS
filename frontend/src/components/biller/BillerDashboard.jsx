@@ -6,6 +6,7 @@ import CreateBillBatch from './CreateBillBatch';
 import AssignBill from './AssignBill';
 import BillerAnalytics from './BillerAnalytics';
 import BillBatchManagement from './BillBatchManagement';
+import BillManagement from './BillManagement';
 import TransactionHistory from '../common/TransactionHistory';
 import SidebarLayout from '../layouts/SidebarLayout';
 import { billerSidebarConfig } from '../../config/sidebarConfigs';
@@ -193,6 +194,8 @@ const BillerDashboardContent = ({ activeView, activeModal, setActiveModal }) => 
         return <BillerAnalytics />;
       case 'batch-management':
         return <BillBatchManagement />;
+      case 'bill-management':
+        return <BillManagement />;
       case 'stats':
         return (
           <div className="bg-white rounded-lg shadow">

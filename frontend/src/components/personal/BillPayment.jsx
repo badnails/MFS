@@ -199,7 +199,7 @@ const BillPayment = ({ onClose }) => {
         recipientId: selectedBiller.accountid,
         recipientName: selectedBiller.accountname,
         paymentType: 'bill-payment',
-        description: `Pay Bill #${selectedBill.billid}`,
+        description: `Bill ${selectedBill.billid}`,
         amount: selectedBill.amount,
         billId: selectedBill.billid
       }

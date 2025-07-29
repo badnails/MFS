@@ -227,7 +227,7 @@ export const getBatches = async (req, res) => {
     );
 
     // Format the response to match frontend expectations
-    const formattedBatches = result.rows.map(row => ({
+    const formattedBatches = result.rows.map((row) => ({
       id: row.id,
       name: row.name,
       startDate: row.startdate,
@@ -240,7 +240,7 @@ export const getBatches = async (req, res) => {
       // defaultDuration: parseInt(row.defaultduration) || 30, // TODO: Fix interval parsing
       totalBills: parseInt(row.totalbills) || 0,
       paidBills: parseInt(row.paidbills) || 0,
-      unpaidBills: parseInt(row.unpaidbills) || 0
+      unpaidBills: parseInt(row.unpaidbills) || 0,
     }));
 
     res.json(formattedBatches);
@@ -270,41 +270,55 @@ export const updateBillBatch = async (req, res) => {
     const authResult = await pool.query(authQuery, [id, accountid]);
 
     if (authResult.rows.length === 0) {
-      return res.status(404).json({ 
-        error: "Bill batch not found or you don't have permission to update it" 
+      return res.status(404).json({
+        error: "Bill batch not found or you don't have permission to update it",
       });
     }
 
     // Validate recurrence type
-    const validRecurrenceTypes = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly'];
-    if (recurrenceType && !validRecurrenceTypes.includes(recurrenceType.toLowerCase())) {
-      return res.status(400).json({ 
-        error: "Invalid recurrence type. Must be one of: daily, weekly, monthly, quarterly, yearly" 
+    const validRecurrenceTypes = [
+      "daily",
+      "weekly",
+      "monthly",
+      "quarterly",
+      "yearly",
+    ];
+    if (
+      recurrenceType &&
+      !validRecurrenceTypes.includes(recurrenceType.toLowerCase())
+    ) {
+      return res.status(400).json({
+        error:
+          "Invalid recurrence type. Must be one of: daily, weekly, monthly, quarterly, yearly",
       });
     }
 
     // Validate numeric values
     if (penaltyRate !== undefined && (penaltyRate < 0 || penaltyRate > 100)) {
-      return res.status(400).json({ 
-        error: "Penalty rate must be between 0 and 100" 
+      return res.status(400).json({
+        error: "Penalty rate must be between 0 and 100",
       });
     }
 
     if (minimumPenalty !== undefined && minimumPenalty < 0) {
-      return res.status(400).json({ 
-        error: "Minimum penalty cannot be negative" 
+      return res.status(400).json({
+        error: "Minimum penalty cannot be negative",
       });
     }
 
     if (maximumPenalty !== undefined && maximumPenalty < 0) {
-      return res.status(400).json({ 
-        error: "Maximum penalty cannot be negative" 
+      return res.status(400).json({
+        error: "Maximum penalty cannot be negative",
       });
     }
 
-    if (minimumPenalty !== undefined && maximumPenalty !== undefined && minimumPenalty > maximumPenalty) {
-      return res.status(400).json({ 
-        error: "Minimum penalty cannot be greater than maximum penalty" 
+    if (
+      minimumPenalty !== undefined &&
+      maximumPenalty !== undefined &&
+      minimumPenalty > maximumPenalty
+    ) {
+      return res.status(400).json({
+        error: "Minimum penalty cannot be greater than maximum penalty",
       });
     }
 
@@ -354,8 +368,8 @@ export const updateBillBatch = async (req, res) => {
     */
 
     if (updateFields.length === 0) {
-      return res.status(400).json({ 
-        error: "No valid fields provided for update" 
+      return res.status(400).json({
+        error: "No valid fields provided for update",
       });
     }
 
@@ -364,8 +378,7 @@ export const updateBillBatch = async (req, res) => {
 
     const updateQuery = `
       UPDATE billbatches 
-      SET ${updateFields.join(', ')}, 
-          updated_at = CURRENT_TIMESTAMP
+      SET ${updateFields.join(", ")}
       WHERE batchid = $${paramIndex} AND accountid = $${paramIndex + 1}
       RETURNING 
         batchid AS id,
@@ -381,7 +394,7 @@ export const updateBillBatch = async (req, res) => {
           WHEN recurrencetype = 'YEARLY' THEN COALESCE(lastrecurrencedate, startdate) + INTERVAL '1 year'
           ELSE NULL
         END AS nextRecurrenceDate,
-        LOWER(recurrencetype) AS recurrenceType,
+        recurrencetype AS recurrenceType,
         penalty_rate AS penaltyRate,
         min_penalty AS minimumPenalty,
         max_penalty AS maximumPenalty
@@ -391,8 +404,8 @@ export const updateBillBatch = async (req, res) => {
     const result = await pool.query(updateQuery, values);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ 
-        error: "Bill batch not found after update" 
+      return res.status(404).json({
+        error: "Bill batch not found after update",
       });
     }
 
@@ -403,19 +416,18 @@ export const updateBillBatch = async (req, res) => {
       startDate: result.rows[0].startdate,
       lastRecurrenceDate: result.rows[0].lastrecurrencedate,
       nextRecurrenceDate: result.rows[0].nextrecurrencedate,
-      recurrenceType: result.rows[0].recurrencetype,
+      recurrenceType: result.rows[0].recurrencetype.toLowerCase(),
       penaltyRate: parseFloat(result.rows[0].penaltyrate) || 0,
       minimumPenalty: parseFloat(result.rows[0].minimumpenalty) || 0,
-      maximumPenalty: parseFloat(result.rows[0].maximumpenalty) || 0
+      maximumPenalty: parseFloat(result.rows[0].maximumpenalty) || 0,
       // defaultDuration: parseInt(result.rows[0].defaultduration) || 30 // TODO: Fix interval parsing
     };
 
     res.json({
       success: true,
       message: "Bill batch updated successfully",
-      data: updatedBatch
+      data: updatedBatch,
     });
-
   } catch (err) {
     console.error("Error updating bill batch:", err);
     res.status(500).json({ error: "Internal server error" });
@@ -488,5 +500,188 @@ export const createBills = async (req, res) => {
       valid: false,
       message: "ISO",
     });
+  }
+};
+
+export const getBillsForBatch = async (req, res) => {
+  const { batchid } = req.params;
+  const accountId = req.user.accountid;
+
+  try {
+    // First verify that the batch belongs to the authenticated user
+    const batchQuery = `
+      SELECT batchid FROM billbatches 
+      WHERE batchid = $1 AND accountid = $2
+    `;
+    const batchResult = await pool.query(batchQuery, [batchid, accountId]);
+
+    if (batchResult.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "Batch not found or not authorized" });
+    }
+
+    const billsQuery = `
+      SELECT 
+        b.billid,
+        b.amount,
+        b.issuedate,
+        b.duedate,
+        b.transactionid,
+        CASE 
+            WHEN t.transactionid IS NOT NULL AND t.transactionstatus = 'COMPLETED' 
+            THEN true 
+            ELSE false 
+        END AS isPaid
+        FROM bills b
+        LEFT JOIN transactions t 
+            ON b.transactionid = t.transactionid
+        WHERE b.batchid = $1
+        ORDER BY b.issuedate DESC;
+    `;
+
+    const billsResult = await pool.query(billsQuery, [batchid]);
+
+    return res.json(billsResult.rows);
+  } catch (err) {
+    console.error("Error fetching bills:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getBillFieldValues = async (req, res) => {
+  const { billid } = req.params;
+  const accountId = req.user.accountid;
+
+  try {
+    // First verify that the bill belongs to a batch owned by the authenticated user
+    const authQuery = `
+      SELECT b.billid 
+      FROM bills b
+      JOIN billbatches bb ON b.batchid = bb.batchid
+      WHERE b.billid = $1 AND bb.accountid = $2
+    `;
+    const authResult = await pool.query(authQuery, [billid, accountId]);
+
+    if (authResult.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "Bill not found or not authorized" });
+    }
+
+    // Get field values for the bill
+    const fieldsQuery = `
+      SELECT bf.field_name, bad.field_value
+      FROM bill_auth_data bad
+      JOIN bill_fields bf ON bad.field_id = bf.id
+      WHERE bad.billid = $1
+    `;
+    const fieldsResult = await pool.query(fieldsQuery, [billid]);
+
+    return res.json(fieldsResult.rows);
+  } catch (err) {
+    console.error("Error fetching bill field values:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const updateBill = async (req, res) => {
+  const { billid } = req.params;
+  const { batchid, amount, issuedate, duedate, fieldValues } = req.body;
+  const accountId = req.user.accountid;
+
+  try {
+
+    // Start transaction
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      if (amount || issuedate || duedate) {
+        let updateFields = [];
+        let values = [];
+        let paramIndex = 1;
+
+        if (amount) {
+          updateFields.push(`amount = $${paramIndex++}`);
+          values.push(parseFloat(amount));
+        }
+
+        if (issuedate) {
+          updateFields.push(`issuedate = $${paramIndex++}`);
+          values.push(issuedate);
+        }
+
+        if (duedate) {
+          updateFields.push(`duedate = $${paramIndex++}`);
+          values.push(duedate);
+        }
+
+        if (updateFields.length > 0) {
+          values.push(billid);
+          const updateQuery = `
+            UPDATE bills 
+            SET ${updateFields.join(", ")}
+            WHERE billid = $${paramIndex}
+          `;
+          await client.query(updateQuery, values);
+        }
+      }
+
+      if (fieldValues && fieldValues.length > 0) {
+        for (const fieldValue of fieldValues) {
+          await client.query(
+            `UPDATE bill_auth_data 
+              SET field_value = $1 
+              WHERE billid = $2 AND field_id = (SELECT id FROM bill_fields WHERE field_name = $3 AND batchid = $4)`,
+            [fieldValue.field_value, billid, fieldValue.field_name, batchid]
+          );
+        }
+      }
+
+      await client.query("COMMIT");
+
+      return res.json({
+        success: true,
+        message: "Bill updated successfully",
+      });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error("Error updating bill:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const deleteBill = async (req, res) => {
+  const { billid } = req.params;
+  const accountId = req.user.accountid;
+
+  try {
+
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      await client.query("DELETE FROM bills WHERE billid = $1", [billid]);
+
+      await client.query("COMMIT");
+
+      return res.json({
+        success: true,
+        message: "Bill deleted successfully",
+      });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error("Error deleting bill:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
